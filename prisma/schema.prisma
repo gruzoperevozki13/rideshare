@@ -1,0 +1,316 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DRIVER
+  PASSENGER
+  CARGO_CARRIER
+  CARGO_SHIPPER
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum WishStatus {
+  OPEN
+  MATCHED
+  CANCELLED
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  image         String?
+  phone         String?
+  bio           String?
+  role          Role?
+  rating        Float     @default(0)
+  tripsCount    Int       @default(0)
+  carBrand      String?
+  carModel      String?
+  carColor      String?
+  carPlate      String?
+  carYear       Int?
+  carImage      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts        Account[]
+  sessions        Session[]
+  trips           Trip[]         @relation("DriverTrips")
+  bookings        Booking[]
+  tripRequests    TripRequest[]
+  proposalsSent   Proposal[]     @relation("ProposalsSent")
+  reviewsGiven    Review[]       @relation("ReviewsGiven")
+  reviewsReceived Review[]       @relation("ReviewsReceived")
+  messages        Message[]
+  cargoMessages   CargoMessage[]
+  cargoTrips      CargoTrip[]    @relation("CarrierTrips")
+  cargoRequests   CargoRequest[] @relation("ShipperRequests")
+  cargoBookingsAsShipper CargoBooking[] @relation("CargoShipperBookings")
+  cargoBookingsAsCarrier CargoBooking[] @relation("CargoCarrierBookings")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model CityCache {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  lat       Float
+  lng       Float
+  createdAt DateTime @default(now())
+}
+
+model Trip {
+  id            String   @id @default(cuid())
+  fromCity      String
+  toCity        String
+  fromLat       Float?
+  fromLng       Float?
+  toLat         Float?
+  toLng         Float?
+  routePolyline String?  @db.Text
+  date          DateTime @db.Date
+  time          String
+  seats         Int
+  price         Float
+  comment       String?
+  driverId      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  driver    User       @relation("DriverTrips", fields: [driverId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+  proposals Proposal[]
+}
+
+model TripRequest {
+  id          String     @id @default(cuid())
+  fromCity    String
+  toCity      String
+  fromLat     Float?
+  fromLng     Float?
+  toLat       Float?
+  toLng       Float?
+  date        DateTime   @db.Date
+  time        String     @default("12:00")
+  seats       Int        @default(1)
+  comment     String?
+  status      WishStatus @default(OPEN)
+  passengerId String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  passenger User       @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  proposals Proposal[]
+}
+
+model Proposal {
+  id        String         @id @default(cuid())
+  wishId    String
+  driverId  String
+  tripId    String?
+  price     Float
+  time      String?
+  message   String?
+  status    ProposalStatus @default(PENDING)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  wish   TripRequest @relation(fields: [wishId], references: [id], onDelete: Cascade)
+  driver User        @relation("ProposalsSent", fields: [driverId], references: [id], onDelete: Cascade)
+  trip   Trip?       @relation(fields: [tripId], references: [id], onDelete: SetNull)
+
+  @@unique([wishId, driverId])
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  tripId         String
+  userId         String
+  status         BookingStatus @default(CONFIRMED)
+  cancelReason   String?
+  cancelledAt    DateTime?
+  cancelledById  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+  reviews  Review[]
+
+  @@unique([tripId, userId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  bookingId String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, createdAt])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int
+  comment    String?
+  authorId   String
+  receiverId String
+  bookingId  String
+  createdAt  DateTime @default(now())
+
+  author   User    @relation("ReviewsGiven", fields: [authorId], references: [id], onDelete: Cascade)
+  receiver User    @relation("ReviewsReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, authorId])
+}
+
+/** Рейс грузоперевозчика: свободная вместимость по маршруту */
+model CargoTrip {
+  id            String   @id @default(cuid())
+  fromCity      String
+  toCity        String
+  fromLat       Float?
+  fromLng       Float?
+  toLat         Float?
+  toLng         Float?
+  routePolyline String?  @db.Text
+  date          DateTime @db.Date
+  time          String
+  vehicleType   String
+  maxWeightKg   Float
+  maxVolumeM3   Float?
+  price         Float
+  comment       String?
+  carrierId     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  carrier  User           @relation("CarrierTrips", fields: [carrierId], references: [id], onDelete: Cascade)
+  bookings CargoBooking[]
+}
+
+/** Заявка владельца груза: забрать груз когда/где */
+model CargoRequest {
+  id          String     @id @default(cuid())
+  fromCity    String
+  toCity      String
+  fromLat     Float?
+  fromLng     Float?
+  toLat       Float?
+  toLng       Float?
+  date        DateTime   @db.Date
+  time        String
+  title       String
+  weightKg    Float
+  volumeM3    Float?
+  comment     String?
+  image       String?
+  status      WishStatus @default(OPEN)
+  shipperId   String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  shipper  User           @relation("ShipperRequests", fields: [shipperId], references: [id], onDelete: Cascade)
+  bookings CargoBooking[]
+}
+
+/**
+ * Взаимное бронирование:
+ * - shipper бронирует CargoTrip (cargoTripId + shipperId)
+ * - carrier берёт CargoRequest (cargoRequestId + carrierId)
+ */
+model CargoBooking {
+  id             String        @id @default(cuid())
+  status         BookingStatus @default(PENDING)
+  cargoTripId    String?
+  cargoRequestId String?
+  shipperId      String?
+  carrierId      String?
+  cancelReason   String?
+  cancelledAt    DateTime?
+  cancelledById  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  cargoTrip    CargoTrip?     @relation(fields: [cargoTripId], references: [id], onDelete: Cascade)
+  cargoRequest CargoRequest?  @relation(fields: [cargoRequestId], references: [id], onDelete: Cascade)
+  shipper      User?          @relation("CargoShipperBookings", fields: [shipperId], references: [id], onDelete: Cascade)
+  carrier      User?          @relation("CargoCarrierBookings", fields: [carrierId], references: [id], onDelete: Cascade)
+  messages     CargoMessage[]
+
+  @@index([cargoTripId])
+  @@index([cargoRequestId])
+}
+
+model CargoMessage {
+  id             String   @id @default(cuid())
+  cargoBookingId String
+  senderId       String
+  body           String
+  createdAt      DateTime @default(now())
+
+  booking CargoBooking @relation(fields: [cargoBookingId], references: [id], onDelete: Cascade)
+  sender  User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([cargoBookingId, createdAt])
+}

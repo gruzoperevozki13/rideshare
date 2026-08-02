@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 204 45% 97%;
+    --foreground: 215 35% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 35% 14%;
+    --primary: 205 92% 36%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 204 28% 93%;
+    --secondary-foreground: 215 30% 20%;
+    --muted: 204 22% 92%;
+    --muted-foreground: 215 14% 42%;
+    --accent: 198 70% 94%;
+    --accent-foreground: 205 80% 28%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 205 22% 86%;
+    --input: 205 22% 86%;
+    --ring: 205 92% 36%;
+    --radius: 1.05rem;
+    --success: 152 55% 36%;
+    --warn: 36 90% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    min-height: 100vh;
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(ellipse 90% 55% at 8% -10%, hsl(198 80% 70% / 0.28), transparent 55%),
+      radial-gradient(ellipse 70% 45% at 100% 0%, hsl(205 90% 55% / 0.16), transparent 50%),
+      radial-gradient(ellipse 50% 40% at 50% 110%, hsl(190 50% 70% / 0.12), transparent 55%),
+      linear-gradient(180deg, hsl(204 50% 97%) 0%, hsl(210 30% 98%) 45%, hsl(0 0% 100%) 100%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(205 92% 36% / 0.18);
+  }
+}
+
+@layer components {
+  .surface {
+    @apply rounded-2xl border border-white/70 bg-white/80 shadow-[0_10px_40px_-18px_rgba(15,50,90,0.28)] backdrop-blur-md;
+  }
+
+  .surface-strong {
+    @apply rounded-2xl border border-white/80 bg-white/95 shadow-[0_14px_44px_-16px_rgba(15,50,90,0.32)] backdrop-blur-lg;
+  }
+
+  .segmented {
+    @apply grid gap-1.5 rounded-2xl border border-border/80 bg-white/50 p-1.5 backdrop-blur-sm;
+  }
+
+  .segmented > button {
+    @apply rounded-xl transition-all duration-200;
+  }
+
+  .page-shell {
+    @apply relative;
+  }
+
+  .page-shell::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230b6bcb' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.9;
+    z-index: 0;
+  }
+
+  .role-tile {
+    @apply relative overflow-hidden rounded-2xl border border-border/70 bg-white/80 p-5 text-left shadow-[0_10px_30px_-18px_rgba(15,50,90,0.25)] transition-all duration-300;
+  }
+
+  .role-tile:hover {
+    @apply -translate-y-0.5 border-primary/30 shadow-[0_18px_40px_-18px_rgba(11,107,203,0.35)];
+  }
+
+  .role-tile:active {
+    @apply translate-y-0;
+  }
+
+  .hero-scrim {
+    background:
+      linear-gradient(105deg, rgba(8, 28, 48, 0.78) 0%, rgba(8, 28, 48, 0.45) 48%, rgba(8, 28, 48, 0.2) 100%),
+      linear-gradient(180deg, rgba(8, 28, 48, 0.15) 0%, rgba(8, 28, 48, 0.55) 100%);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), Georgia, serif;
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.45s ease-out both;
+  }
+
+  .animate-soft-pulse {
+    animation: softPulse 3.2s ease-in-out infinite;
+  }
+
+  .animate-rise {
+    animation: riseIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .stagger-1 {
+    animation-delay: 0.06s;
+  }
+  .stagger-2 {
+    animation-delay: 0.12s;
+  }
+  .stagger-3 {
+    animation-delay: 0.18s;
+  }
+  .stagger-4 {
+    animation-delay: 0.24s;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes softPulse {
+  0%,
+  100% {
+    opacity: 0.82;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.leaflet-container {
+  font: inherit;
+  z-index: 0;
+  border-radius: calc(var(--radius) + 2px);
+}
+
+.maplibregl-map {
+  font: inherit;
+}

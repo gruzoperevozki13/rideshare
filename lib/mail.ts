@@ -1,0 +1,48 @@
+import nodemailer from "nodemailer";
+
+function getTransport() {
+  const host = process.env.EMAIL_SERVER_HOST || "smtp.mail.ru";
+  const port = Number(process.env.EMAIL_SERVER_PORT || 465);
+  const user = process.env.EMAIL_SERVER_USER;
+  const pass = process.env.EMAIL_SERVER_PASSWORD;
+
+  if (!user || !pass) {
+    throw new Error(
+      "Не настроен SMTP: заполните EMAIL_SERVER_USER и EMAIL_SERVER_PASSWORD в .env"
+    );
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
+}
+
+export async function sendVerificationEmail(email: string, code: string) {
+  const from = process.env.EMAIL_FROM || process.env.EMAIL_SERVER_USER;
+  if (!from) {
+    throw new Error("Укажите EMAIL_FROM в .env");
+  }
+
+  const transport = getTransport();
+
+  await transport.sendMail({
+    from: `RideShare <${from}>`,
+    to: email,
+    subject: "Код подтверждения RideShare",
+    text: `Здравствуйте!\n\nВаш код подтверждения RideShare: ${code}\n\nКод действует 30 минут.\nЕсли вы не регистрировались — просто проигнорируйте письмо.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0f172a">
+        <h1 style="font-size:22px;margin:0 0 12px">RideShare</h1>
+        <p style="margin:0 0 16px;line-height:1.5">Введите этот код на сайте, чтобы подтвердить email:</p>
+        <p style="margin:0 0 8px;font-size:32px;letter-spacing:0.35em;font-weight:700;color:#0b6bcb">${code}</p>
+        <p style="margin:20px 0 0;font-size:13px;color:#64748b;line-height:1.5">
+          Код действует 30 минут.<br/>
+          Если вы не регистрировались — просто проигнорируйте письмо.
+        </p>
+      </div>
+    `,
+  });
+}
