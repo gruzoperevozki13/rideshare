@@ -1,8 +1,14 @@
 import { z } from "zod";
 
 export const tripSchema = z.object({
-  fromCity: z.string().min(2, "Укажите город отправления"),
-  toCity: z.string().min(2, "Укажите город прибытия"),
+  fromCity: z
+    .string()
+    .min(2, "Укажите адрес отправления")
+    .max(200, "Слишком длинный адрес"),
+  toCity: z
+    .string()
+    .min(2, "Укажите адрес прибытия")
+    .max(200, "Слишком длинный адрес"),
   date: z.string().min(1, "Укажите дату"),
   time: z.string().min(1, "Укажите время"),
   seats: z.coerce.number().int().min(1).max(8),
@@ -19,8 +25,14 @@ export const tripSearchSchema = z.object({
 });
 
 export const wishSchema = z.object({
-  fromCity: z.string().min(2, "Укажите город отправления"),
-  toCity: z.string().min(2, "Укажите город прибытия"),
+  fromCity: z
+    .string()
+    .min(2, "Укажите адрес отправления")
+    .max(200, "Слишком длинный адрес"),
+  toCity: z
+    .string()
+    .min(2, "Укажите адрес прибытия")
+    .max(200, "Слишком длинный адрес"),
   date: z.string().min(1, "Укажите дату"),
   time: z.string().min(1, "Укажите время"),
   seats: z.coerce.number().int().min(1).max(8).default(1),
@@ -112,8 +124,14 @@ export const reviewSchema = z.object({
 });
 
 export const cargoTripSchema = z.object({
-  fromCity: z.string().min(2, "Укажите город отправления"),
-  toCity: z.string().min(2, "Укажите город прибытия"),
+  fromCity: z
+    .string()
+    .min(2, "Укажите адрес отправления")
+    .max(200, "Слишком длинный адрес"),
+  toCity: z
+    .string()
+    .min(2, "Укажите адрес прибытия")
+    .max(200, "Слишком длинный адрес"),
   date: z.string().min(1, "Укажите дату"),
   time: z.string().min(1, "Укажите время"),
   vehicleType: z.string().min(2, "Укажите тип транспорта"),
@@ -128,8 +146,14 @@ export const cargoTripSchema = z.object({
 });
 
 export const cargoRequestSchema = z.object({
-  fromCity: z.string().min(2, "Укажите город отправления"),
-  toCity: z.string().min(2, "Укажите город прибытия"),
+  fromCity: z
+    .string()
+    .min(2, "Укажите адрес отправления")
+    .max(200, "Слишком длинный адрес"),
+  toCity: z
+    .string()
+    .min(2, "Укажите адрес прибытия")
+    .max(200, "Слишком длинный адрес"),
   date: z.string().min(1, "Укажите дату передачи"),
   time: z.string().min(1, "Укажите время передачи"),
   title: z.string().min(2, "Опишите груз"),

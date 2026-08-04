@@ -88,7 +88,7 @@ export function WishForm({ wishId, defaultValues, onSuccess }: WishFormProps) {
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Москва"
+                    placeholder="Город, улица, дом"
                   />
                 )}
               />
@@ -108,7 +108,7 @@ export function WishForm({ wishId, defaultValues, onSuccess }: WishFormProps) {
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Тула"
+                    placeholder="Город, улица, дом"
                   />
                 )}
               />

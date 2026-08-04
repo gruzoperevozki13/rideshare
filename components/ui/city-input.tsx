@@ -30,7 +30,7 @@ export function CityInput({
   onBlur,
   name,
   id,
-  placeholder = "Начните вводить город",
+  placeholder = "Город, улица, дом",
   disabled,
   className,
   autoComplete = "off",
@@ -61,7 +61,7 @@ export function CityInput({
     if (!open) return;
     const t = setTimeout(() => {
       void fetchSuggestions(value);
-    }, 220);
+    }, 280);
     return () => clearTimeout(t);
   }, [value, open, fetchSuggestions]);
 
@@ -128,19 +128,19 @@ export function CityInput({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-border bg-white py-1 shadow-lg"
+          className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-border bg-white py-1 shadow-lg"
         >
           {loading && items.length === 0 && (
-            <li className="px-3 py-2 text-sm text-muted-foreground">Ищем…</li>
+            <li className="px-3 py-2 text-sm text-muted-foreground">Ищем адрес…</li>
           )}
           {items.map((city, i) => (
-            <li key={city}>
+            <li key={`${city}-${i}`}>
               <button
                 type="button"
                 role="option"
                 aria-selected={i === highlight}
                 className={cn(
-                  "w-full px-3 py-2 text-left text-sm hover:bg-primary/10",
+                  "w-full px-3 py-2 text-left text-sm leading-snug hover:bg-primary/10",
                   i === highlight && "bg-primary/10"
                 )}
                 onMouseDown={(e) => e.preventDefault()}

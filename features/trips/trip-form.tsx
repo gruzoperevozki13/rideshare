@@ -183,7 +183,7 @@ export function TripForm({ defaultValues, tripId, onSuccess }: TripFormProps) {
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Москва"
+                    placeholder="Город, улица, дом"
                   />
                 )}
               />
@@ -203,7 +203,7 @@ export function TripForm({ defaultValues, tripId, onSuccess }: TripFormProps) {
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Санкт-Петербург"
+                    placeholder="Город, улица, дом"
                   />
                 )}
               />

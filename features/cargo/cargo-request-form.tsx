@@ -169,7 +169,7 @@ export function CargoRequestForm({
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Саранск"
+                    placeholder="Город, улица, дом"
                   />
                 )}
               />
@@ -188,7 +188,7 @@ export function CargoRequestForm({
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Москва"
+                    placeholder="Город, улица, дом"
                   />
                 )}
               />

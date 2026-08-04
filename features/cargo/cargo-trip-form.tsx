@@ -157,7 +157,7 @@ export function CargoTripForm({
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Саранск"
+                    placeholder="Город, улица, дом"
                   />
                 )}
               />
@@ -176,7 +176,7 @@ export function CargoTripForm({
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Москва"
+                    placeholder="Город, улица, дом"
                   />
                 )}
               />

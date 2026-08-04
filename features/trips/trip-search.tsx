@@ -40,7 +40,7 @@ export function TripSearch({ onSearch }: TripSearchProps) {
           <Label htmlFor="searchFrom">Откуда</Label>
           <CityInput
             id="searchFrom"
-            placeholder="Город отправления"
+            placeholder="Город, улица, дом"
             value={filters.fromCity ?? ""}
             onChange={(fromCity) => setFilters({ ...filters, fromCity })}
           />
@@ -49,7 +49,7 @@ export function TripSearch({ onSearch }: TripSearchProps) {
           <Label htmlFor="searchTo">Куда</Label>
           <CityInput
             id="searchTo"
-            placeholder="Город прибытия"
+            placeholder="Город, улица, дом"
             value={filters.toCity ?? ""}
             onChange={(toCity) => setFilters({ ...filters, toCity })}
           />
