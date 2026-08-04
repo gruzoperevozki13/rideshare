@@ -16,10 +16,17 @@ function getTransport() {
     host,
     port,
     secure: port === 465,
+    requireTLS: port === 587,
     auth: { user, pass },
-    connectionTimeout: 15_000,
-    greetingTimeout: 15_000,
-    socketTimeout: 20_000,
+    connectionTimeout: 20_000,
+    greetingTimeout: 20_000,
+    socketTimeout: 30_000,
+    // На VPS IPv6 до Mail.ru часто «висит» → Connection timeout
+    family: 4,
+    tls: {
+      minVersion: "TLSv1.2",
+      servername: host,
+    },
   });
 }
 
