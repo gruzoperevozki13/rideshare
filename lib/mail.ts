@@ -1,6 +1,18 @@
+import dns from "dns/promises";
 import nodemailer from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
-function getTransport() {
+async function resolveSmtpHost(host: string): Promise<string> {
+  try {
+    const v6 = await dns.resolve6(host);
+    if (v6[0]) return v6[0];
+  } catch {
+    // IPv6 недоступен в DNS — оставляем имя хоста
+  }
+  return host;
+}
+
+async function getTransport() {
   const host = process.env.EMAIL_SERVER_HOST || "smtp.mail.ru";
   const port = Number(process.env.EMAIL_SERVER_PORT || 465);
   const user = process.env.EMAIL_SERVER_USER;
@@ -12,8 +24,12 @@ function getTransport() {
     );
   }
 
-  return nodemailer.createTransport({
-    host,
+  // На Timeweb VPS IPv4 до Mail.ru зависает; openssl ходит по IPv6 —
+  // подключаемся к AAAA-адресу напрямую, SNI оставляем на имя хоста.
+  const connectHost = await resolveSmtpHost(host);
+
+  const options: SMTPTransport.Options = {
+    host: connectHost,
     port,
     secure: port === 465,
     requireTLS: port === 587,
@@ -21,13 +37,13 @@ function getTransport() {
     connectionTimeout: 20_000,
     greetingTimeout: 20_000,
     socketTimeout: 30_000,
-    // На этом VPS IPv4 до Mail.ru зависает; openssl ходит по IPv6 успешно
-    family: 6,
     tls: {
       minVersion: "TLSv1.2",
       servername: host,
     },
-  });
+  };
+
+  return nodemailer.createTransport(options);
 }
 
 export async function sendVerificationEmail(email: string, code: string) {
@@ -36,7 +52,7 @@ export async function sendVerificationEmail(email: string, code: string) {
     throw new Error("Укажите EMAIL_FROM в .env");
   }
 
-  const transport = getTransport();
+  const transport = await getTransport();
 
   await transport.sendMail({
     from: `RideShare <${from}>`,
@@ -63,7 +79,7 @@ export async function sendPasswordResetEmail(email: string, code: string) {
     throw new Error("Укажите EMAIL_FROM в .env");
   }
 
-  const transport = getTransport();
+  const transport = await getTransport();
 
   await transport.sendMail({
     from: `RideShare <${from}>`,
