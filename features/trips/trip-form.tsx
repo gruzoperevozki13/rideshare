@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CityInput } from "@/components/ui/city-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RouteMap } from "@/components/map/route-map";
 import type { LatLng } from "@/lib/geo";
@@ -44,6 +45,7 @@ export function TripForm({ defaultValues, tripId, onSuccess }: TripFormProps) {
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
     setError,
   } = useForm<TripFormData>({
@@ -171,14 +173,40 @@ export function TripForm({ defaultValues, tripId, onSuccess }: TripFormProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="fromCity">Откуда</Label>
-              <Input id="fromCity" placeholder="Москва" {...register("fromCity")} />
+              <Controller
+                name="fromCity"
+                control={control}
+                render={({ field }) => (
+                  <CityInput
+                    id="fromCity"
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder="Москва"
+                  />
+                )}
+              />
               {errors.fromCity && (
                 <p className="text-sm text-destructive">{errors.fromCity.message}</p>
               )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="toCity">Куда</Label>
-              <Input id="toCity" placeholder="Санкт-Петербург" {...register("toCity")} />
+              <Controller
+                name="toCity"
+                control={control}
+                render={({ field }) => (
+                  <CityInput
+                    id="toCity"
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder="Санкт-Петербург"
+                  />
+                )}
+              />
               {errors.toCity && (
                 <p className="text-sm text-destructive">{errors.toCity.message}</p>
               )}

@@ -12,10 +12,12 @@ import { VerifyCodeForm } from "@/features/auth/verify-code-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
   const verified = searchParams.get("verified") === "1";
+  const resetOk = searchParams.get("reset") === "1";
   const urlError = searchParams.get("error");
 
   const [email, setEmail] = useState("");
@@ -24,7 +26,11 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(urlError);
   const [needVerify, setNeedVerify] = useState(false);
   const [info, setInfo] = useState<string | null>(
-    verified ? "Email подтверждён — можно войти" : null
+    verified
+      ? "Email подтверждён — можно войти"
+      : resetOk
+        ? "Пароль обновлён — войдите с новым паролем"
+        : null
   );
 
   const handleCredentialsLogin = async (e: React.FormEvent) => {
@@ -105,10 +111,17 @@ export function LoginForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Пароль</Label>
-          <Input
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="password">Пароль</Label>
+            <Link
+              href="/login/forgot"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Забыли пароль?
+            </Link>
+          </div>
+          <PasswordInput
             id="password"
-            type="password"
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

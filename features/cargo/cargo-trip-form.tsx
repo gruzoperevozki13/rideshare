@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CityInput } from "@/components/ui/city-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { LatLng } from "@/lib/geo";
 
@@ -44,6 +45,7 @@ export function CargoTripForm({
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
     setError,
     reset,
@@ -146,14 +148,38 @@ export function CargoTripForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Откуда</Label>
-              <Input placeholder="Саранск" {...register("fromCity")} />
+              <Controller
+                name="fromCity"
+                control={control}
+                render={({ field }) => (
+                  <CityInput
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder="Саранск"
+                  />
+                )}
+              />
               {errors.fromCity && (
                 <p className="text-sm text-destructive">{errors.fromCity.message}</p>
               )}
             </div>
             <div className="space-y-2">
               <Label>Куда</Label>
-              <Input placeholder="Москва" {...register("toCity")} />
+              <Controller
+                name="toCity"
+                control={control}
+                render={({ field }) => (
+                  <CityInput
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder="Москва"
+                  />
+                )}
+              />
               {errors.toCity && (
                 <p className="text-sm text-destructive">{errors.toCity.message}</p>
               )}

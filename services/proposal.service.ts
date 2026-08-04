@@ -252,9 +252,9 @@ export async function getDriverProposals(driverId: string) {
 
   return proposals.map((p) => {
     const passengerId = p.wish.passengerId;
-    const booking =
-      p.tripId &&
-      bookings.find((b) => b.tripId === p.tripId && b.userId === passengerId);
+    const booking = p.tripId
+      ? bookings.find((b) => b.tripId === p.tripId && b.userId === passengerId)
+      : undefined;
     return { ...p, bookingId: booking?.id ?? null };
   });
 }

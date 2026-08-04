@@ -88,6 +88,18 @@ export const registerSchema = z.object({
   }),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Некорректный email"),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().email("Некорректный email"),
+  code: z
+    .string()
+    .regex(/^\d{6}$/, "Введите 6-значный код из письма"),
+  password: z.string().min(6, "Пароль не менее 6 символов"),
+});
+
 export const messageSchema = z.object({
   bookingId: z.string().min(1),
   body: z.string().min(1, "Введите сообщение").max(1000),

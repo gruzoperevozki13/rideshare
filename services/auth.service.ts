@@ -1,10 +1,14 @@
 import { randomInt } from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { sendVerificationEmail } from "@/lib/mail";
+import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/mail";
 
 const SALT_ROUNDS = 10;
 const VERIFY_TTL_MS = 30 * 60 * 1000;
+
+function resetIdentifier(email: string) {
+  return `pwdreset:${email}`;
+}
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, SALT_ROUNDS);
@@ -138,4 +142,71 @@ export async function resendVerificationEmail(emailRaw: string) {
   }
 
   await createAndSendEmailVerification(email);
+}
+
+/** Запрос сброса: письмо только если аккаунт есть. Снаружи всегда «успех». */
+export async function requestPasswordReset(emailRaw: string) {
+  const email = emailRaw.toLowerCase().trim();
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user?.passwordHash) {
+    return;
+  }
+
+  const code = await createUniqueCode();
+  const expires = new Date(Date.now() + VERIFY_TTL_MS);
+  const identifier = resetIdentifier(email);
+
+  await prisma.verificationToken.deleteMany({ where: { identifier } });
+  await prisma.verificationToken.create({
+    data: { identifier, token: code, expires },
+  });
+
+  await sendPasswordResetEmail(email, code);
+}
+
+export async function resetPasswordWithCode(
+  emailRaw: string,
+  codeRaw: string,
+  newPassword: string
+) {
+  const email = emailRaw.toLowerCase().trim();
+  const code = codeRaw.replace(/\s/g, "").trim();
+
+  if (!/^\d{6}$/.test(code)) {
+    throw new Error("Введите 6-значный код из письма");
+  }
+  if (newPassword.length < 6) {
+    throw new Error("Пароль не менее 6 символов");
+  }
+
+  const identifier = resetIdentifier(email);
+  const record = await prisma.verificationToken.findFirst({
+    where: { identifier, token: code },
+  });
+
+  if (!record) {
+    throw new Error("Неверный код или он уже использован");
+  }
+
+  if (record.expires.getTime() < Date.now()) {
+    await prisma.verificationToken.deleteMany({ where: { identifier } });
+    throw new Error("Срок кода истёк — запросите новый");
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user?.passwordHash) {
+    throw new Error("Аккаунт не найден");
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+  await prisma.user.update({
+    where: { email },
+    data: {
+      passwordHash,
+      emailVerified: user.emailVerified ?? new Date(),
+    },
+  });
+
+  await prisma.verificationToken.deleteMany({ where: { identifier } });
 }

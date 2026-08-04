@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { CityInput } from "@/components/ui/city-input";
 import { TripSearchData } from "@/lib/validations";
 
 interface TripSearchProps {
@@ -37,20 +38,20 @@ export function TripSearch({ onSearch }: TripSearchProps) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label htmlFor="searchFrom">Откуда</Label>
-          <Input
+          <CityInput
             id="searchFrom"
             placeholder="Город отправления"
             value={filters.fromCity ?? ""}
-            onChange={(e) => setFilters({ ...filters, fromCity: e.target.value })}
+            onChange={(fromCity) => setFilters({ ...filters, fromCity })}
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="searchTo">Куда</Label>
-          <Input
+          <CityInput
             id="searchTo"
             placeholder="Город прибытия"
             value={filters.toCity ?? ""}
-            onChange={(e) => setFilters({ ...filters, toCity: e.target.value })}
+            onChange={(toCity) => setFilters({ ...filters, toCity })}
           />
         </div>
         <div className="space-y-2">

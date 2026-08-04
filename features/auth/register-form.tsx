@@ -7,6 +7,7 @@ import { VerifyCodeForm } from "@/features/auth/verify-code-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function RegisterForm() {
   const [isPending, startTransition] = useTransition();
@@ -79,10 +80,9 @@ export function RegisterForm() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="password">Пароль</Label>
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
             placeholder="Минимум 6 символов"
             required
             minLength={6}

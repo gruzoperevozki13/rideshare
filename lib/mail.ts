@@ -17,6 +17,9 @@ function getTransport() {
     port,
     secure: port === 465,
     auth: { user, pass },
+    connectionTimeout: 15_000,
+    greetingTimeout: 15_000,
+    socketTimeout: 20_000,
   });
 }
 
@@ -41,6 +44,33 @@ export async function sendVerificationEmail(email: string, code: string) {
         <p style="margin:20px 0 0;font-size:13px;color:#64748b;line-height:1.5">
           Код действует 30 минут.<br/>
           Если вы не регистрировались — просто проигнорируйте письмо.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPasswordResetEmail(email: string, code: string) {
+  const from = process.env.EMAIL_FROM || process.env.EMAIL_SERVER_USER;
+  if (!from) {
+    throw new Error("Укажите EMAIL_FROM в .env");
+  }
+
+  const transport = getTransport();
+
+  await transport.sendMail({
+    from: `RideShare <${from}>`,
+    to: email,
+    subject: "Восстановление пароля RideShare",
+    text: `Здравствуйте!\n\nКод для сброса пароля RideShare: ${code}\n\nКод действует 30 минут.\nЕсли вы не запрашивали сброс — просто проигнорируйте письмо.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0f172a">
+        <h1 style="font-size:22px;margin:0 0 12px">RideShare</h1>
+        <p style="margin:0 0 16px;line-height:1.5">Введите этот код на сайте, чтобы задать новый пароль:</p>
+        <p style="margin:0 0 8px;font-size:32px;letter-spacing:0.35em;font-weight:700;color:#0b6bcb">${code}</p>
+        <p style="margin:20px 0 0;font-size:13px;color:#64748b;line-height:1.5">
+          Код действует 30 минут.<br/>
+          Если вы не запрашивали сброс — просто проигнорируйте письмо.
         </p>
       </div>
     `,

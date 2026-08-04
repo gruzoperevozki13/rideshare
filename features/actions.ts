@@ -524,6 +524,60 @@ export async function checkCredentialsAction(emailRaw: string, password: string)
   return { ok: true as const };
 }
 
+export async function requestPasswordResetAction(emailRaw: string) {
+  const { forgotPasswordSchema } = await import("@/lib/validations");
+  const parsed = forgotPasswordSchema.safeParse({ email: emailRaw });
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0]?.message ?? "Некорректный email" };
+  }
+
+  try {
+    const { requestPasswordReset } = await import("@/services/auth.service");
+    await requestPasswordReset(parsed.data.email);
+    return {
+      success: true as const,
+      email: parsed.data.email.toLowerCase().trim(),
+    };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Не удалось отправить письмо. Проверьте настройки почты.",
+    };
+  }
+}
+
+export async function resetPasswordAction(
+  emailRaw: string,
+  code: string,
+  password: string
+) {
+  const { resetPasswordSchema } = await import("@/lib/validations");
+  const parsed = resetPasswordSchema.safeParse({
+    email: emailRaw,
+    code,
+    password,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0]?.message ?? "Ошибка валидации" };
+  }
+
+  try {
+    const { resetPasswordWithCode } = await import("@/services/auth.service");
+    await resetPasswordWithCode(
+      parsed.data.email,
+      parsed.data.code,
+      parsed.data.password
+    );
+    return { success: true as const };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Не удалось сменить пароль",
+    };
+  }
+}
+
 export async function getMessagesAction(bookingId: string) {
   const user = await requireAuth();
   try {
