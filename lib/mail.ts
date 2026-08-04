@@ -21,8 +21,8 @@ function getTransport() {
     connectionTimeout: 20_000,
     greetingTimeout: 20_000,
     socketTimeout: 30_000,
-    // На VPS IPv6 до Mail.ru часто «висит» → Connection timeout
-    family: 4,
+    // На этом VPS IPv4 до Mail.ru зависает; openssl ходит по IPv6 успешно
+    family: 6,
     tls: {
       minVersion: "TLSv1.2",
       servername: host,
