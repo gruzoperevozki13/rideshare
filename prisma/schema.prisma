@@ -122,6 +122,8 @@ model Trip {
   toLat         Float?
   toLng         Float?
   routePolyline String?  @db.Text
+  distanceKm    Float?
+  durationMin   Int?
   date          DateTime @db.Date
   time          String
   seats         Int

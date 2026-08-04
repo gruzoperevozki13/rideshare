@@ -1,4 +1,5 @@
 import { decodePolyline, type LatLng } from "@/lib/geo";
+import { formatDurationMin } from "@/lib/utils";
 
 export type RouteOption = {
   id: string;
@@ -26,7 +27,8 @@ function formatRoute(
   index: number
 ): RouteOption {
   const distanceKm = Math.round((distanceM / 1000) * 10) / 10;
-  const durationMin = Math.round(durationSec / 60);
+  const durationMin = Math.max(1, Math.round(durationSec / 60));
+  const timeLabel = formatDurationMin(durationMin);
   return {
     id: `route-${index}`,
     points,
@@ -34,8 +36,8 @@ function formatRoute(
     durationMin,
     summary:
       index === 0
-        ? `Основной · ${distanceKm} км · ~${durationMin} мин`
-        : `Вариант ${index + 1} · ${distanceKm} км · ~${durationMin} мин`,
+        ? `Основной · ${distanceKm} км · ~${timeLabel}`
+        : `Вариант ${index + 1} · ${distanceKm} км · ~${timeLabel}`,
   };
 }
 
@@ -134,7 +136,8 @@ export async function fetchRoutePolyline(
 export async function buildTripGeo(
   fromCity: string,
   toCity: string,
-  selectedPolylineJson?: string | null
+  selectedPolylineJson?: string | null,
+  selectedMeta?: { durationMin?: number | null; distanceKm?: number | null }
 ) {
   const { resolveCityPair } = await import("@/services/geocode.service");
   const { from, to } = await resolveCityPair(fromCity, toCity);
@@ -146,6 +149,8 @@ export async function buildTripGeo(
       toLat: to?.lat ?? null,
       toLng: to?.lng ?? null,
       routePolyline: null as string | null,
+      durationMin: null as number | null,
+      distanceKm: null as number | null,
     };
   }
 
@@ -154,12 +159,22 @@ export async function buildTripGeo(
       const parsed = JSON.parse(selectedPolylineJson) as LatLng[];
       // 2 точки = почти всегда «прямая», а не дороги — пересчитаем
       if (Array.isArray(parsed) && isRoadPolyline(parsed)) {
+        const durationMin =
+          selectedMeta?.durationMin && selectedMeta.durationMin > 0
+            ? Math.round(selectedMeta.durationMin)
+            : null;
+        const distanceKm =
+          selectedMeta?.distanceKm && selectedMeta.distanceKm > 0
+            ? selectedMeta.distanceKm
+            : null;
         return {
           fromLat: from.lat,
           fromLng: from.lng,
           toLat: to.lat,
           toLng: to.lng,
           routePolyline: JSON.stringify(parsed),
+          durationMin,
+          distanceKm,
         };
       }
     } catch {
@@ -167,13 +182,17 @@ export async function buildTripGeo(
     }
   }
 
-  const route = await fetchRoutePolyline(from, to);
+  const routes = await fetchRouteAlternatives(from, to);
+  const first = routes[0];
+  const isFallback = Boolean(first?.isFallback);
 
   return {
     fromLat: from.lat,
     fromLng: from.lng,
     toLat: to.lat,
     toLng: to.lng,
-    routePolyline: JSON.stringify(route.points),
+    routePolyline: first ? JSON.stringify(first.points) : null,
+    durationMin: isFallback || !first ? null : first.durationMin,
+    distanceKm: first && !isFallback ? first.distanceKm : null,
   };
 }

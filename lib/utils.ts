@@ -26,6 +26,19 @@ export function formatRating(rating: number): string {
   return rating.toFixed(1);
 }
 
+/** Минуты → «45 мин» / «2 ч» / «2 ч 15 мин» */
+export function formatDurationMin(totalMin: number | null | undefined): string {
+  if (totalMin == null || !Number.isFinite(totalMin) || totalMin <= 0) {
+    return "";
+  }
+  const mins = Math.round(totalMin);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h <= 0) return `${m} мин`;
+  if (m === 0) return `${h} ч`;
+  return `${h} ч ${m} мин`;
+}
+
 export function getAvailableSeats(seats: number, bookedCount: number): number {
   return Math.max(0, seats - bookedCount);
 }

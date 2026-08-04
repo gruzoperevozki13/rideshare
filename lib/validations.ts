@@ -15,6 +15,14 @@ export const tripSchema = z.object({
   price: z.coerce.number().min(0),
   comment: z.string().optional(),
   routePolyline: z.string().optional(),
+  durationMin: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z.coerce.number().int().positive().optional()
+  ),
+  distanceKm: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z.coerce.number().positive().optional()
+  ),
 });
 
 export const tripSearchSchema = z.object({

@@ -61,17 +61,25 @@ export async function createTrip(formData: FormData) {
       price: formData.get("price"),
       comment: formData.get("comment") || undefined,
       routePolyline: formData.get("routePolyline") || undefined,
+      durationMin: formData.get("durationMin") || undefined,
+      distanceKm: formData.get("distanceKm") || undefined,
     });
 
     if (!parsed.success) {
       return { error: parsed.error.errors[0]?.message ?? "Ошибка валидации" };
     }
 
-    const { routePolyline: selectedRoute, ...tripFields } = parsed.data;
+    const {
+      routePolyline: selectedRoute,
+      durationMin: formDuration,
+      distanceKm: formDistance,
+      ...tripFields
+    } = parsed.data;
     const geo = await buildTripGeo(
       tripFields.fromCity,
       tripFields.toCity,
-      selectedRoute
+      selectedRoute,
+      { durationMin: formDuration, distanceKm: formDistance }
     );
 
     await prisma.trip.create({
@@ -84,6 +92,8 @@ export async function createTrip(formData: FormData) {
         toLat: geo.toLat,
         toLng: geo.toLng,
         routePolyline: geo.routePolyline,
+        durationMin: geo.durationMin ?? formDuration ?? null,
+        distanceKm: geo.distanceKm ?? formDistance ?? null,
       },
     });
 
@@ -120,17 +130,25 @@ export async function updateTrip(tripId: string, formData: FormData) {
     price: formData.get("price"),
     comment: formData.get("comment") || undefined,
     routePolyline: formData.get("routePolyline") || undefined,
+    durationMin: formData.get("durationMin") || undefined,
+    distanceKm: formData.get("distanceKm") || undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? "Ошибка валидации" };
   }
 
-  const { routePolyline: selectedRoute, ...tripFields } = parsed.data;
+  const {
+    routePolyline: selectedRoute,
+    durationMin: formDuration,
+    distanceKm: formDistance,
+    ...tripFields
+  } = parsed.data;
   const geo = await buildTripGeo(
     tripFields.fromCity,
     tripFields.toCity,
-    selectedRoute
+    selectedRoute,
+    { durationMin: formDuration, distanceKm: formDistance }
   );
 
   await prisma.trip.update({
@@ -143,6 +161,8 @@ export async function updateTrip(tripId: string, formData: FormData) {
       toLat: geo.toLat,
       toLng: geo.toLng,
       routePolyline: geo.routePolyline,
+      durationMin: geo.durationMin ?? formDuration ?? null,
+      distanceKm: geo.distanceKm ?? formDistance ?? null,
     },
   });
 

@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RouteMap } from "@/components/map/route-map";
-import { formatDate, formatPrice, formatRating, getAvailableSeats } from "@/lib/utils";
+import { formatDate, formatDurationMin, formatPrice, formatRating, getAvailableSeats } from "@/lib/utils";
 import { parseRoutePolyline } from "@/lib/geo";
 
 export type TripCardData = {
@@ -29,6 +29,8 @@ export type TripCardData = {
   toLat?: number | null;
   toLng?: number | null;
   routePolyline?: string | null;
+  durationMin?: number | null;
+  distanceKm?: number | null;
   alongRoute?: boolean;
   driver: {
     id: string;
@@ -142,7 +144,7 @@ export function TripCard({ trip }: TripCardProps) {
               {trip.fromCity} → {trip.toCity}
             </span>
           </div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
               {formatDate(trip.date)}
@@ -151,6 +153,15 @@ export function TripCard({ trip }: TripCardProps) {
               <Clock className="h-4 w-4" />
               {trip.time}
             </span>
+            {trip.durationMin != null && trip.durationMin > 0 && (
+              <span className="flex items-center gap-1">
+                <Route className="h-4 w-4" />
+                в пути ~{formatDurationMin(trip.durationMin)}
+                {trip.distanceKm != null && trip.distanceKm > 0
+                  ? ` · ${trip.distanceKm} км`
+                  : ""}
+              </span>
+            )}
           </div>
         </div>
 

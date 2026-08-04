@@ -73,6 +73,8 @@ export function TripForm({ defaultValues, tripId, onSuccess }: TripFormProps) {
       setFromPoint(null);
       setToPoint(null);
       setValue("routePolyline", "");
+      setValue("durationMin", undefined);
+      setValue("distanceKm", undefined);
       return;
     }
 
@@ -97,10 +99,14 @@ export function TripForm({ defaultValues, tripId, onSuccess }: TripFormProps) {
       if (first && !first.isFallback && first.points.length >= 3) {
         setSelectedRouteId(first.id);
         setValue("routePolyline", JSON.stringify(first.points));
+        setValue("durationMin", first.durationMin);
+        setValue("distanceKm", first.distanceKm);
       } else {
         setSelectedRouteId(first?.id ?? null);
         // Пусто → на сервере пересчитаем по дорогам
         setValue("routePolyline", "");
+        setValue("durationMin", undefined);
+        setValue("distanceKm", undefined);
         if (first?.isFallback) {
           setRoutesError(
             "Сервис дорог временно недоступен — при сохранении маршрут попробуем построить снова"
@@ -126,8 +132,12 @@ export function TripForm({ defaultValues, tripId, onSuccess }: TripFormProps) {
     setSelectedRouteId(route.id);
     if (!route.isFallback && route.points.length >= 3) {
       setValue("routePolyline", JSON.stringify(route.points));
+      setValue("durationMin", route.durationMin);
+      setValue("distanceKm", route.distanceKm);
     } else {
       setValue("routePolyline", "");
+      setValue("durationMin", undefined);
+      setValue("distanceKm", undefined);
     }
   };
 
@@ -269,6 +279,8 @@ export function TripForm({ defaultValues, tripId, onSuccess }: TripFormProps) {
               </div>
             )}
             <input type="hidden" {...register("routePolyline")} />
+            <input type="hidden" {...register("durationMin")} />
+            <input type="hidden" {...register("distanceKm")} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

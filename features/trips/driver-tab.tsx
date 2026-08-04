@@ -17,7 +17,7 @@ import { TripSearchData } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatDate, formatPrice } from "@/lib/utils";
+import { formatDate, formatDurationMin, formatPrice } from "@/lib/utils";
 import { parseRoutePolyline } from "@/lib/geo";
 
 function canRateTrip(date: Date | string, time: string) {
@@ -41,6 +41,8 @@ type DriverTrip = {
   toLat?: number | null;
   toLng?: number | null;
   routePolyline?: string | null;
+  durationMin?: number | null;
+  distanceKm?: number | null;
   bookings: {
     id: string;
     status: string;
@@ -231,6 +233,15 @@ export function DriverTab({ trips, nearbyWishes, myProposals }: DriverTabProps) 
                     <CardContent className="space-y-3">
                       <div className="text-sm text-muted-foreground">
                         {formatDate(trip.date)} · {trip.time} · {formatPrice(trip.price)}
+                        {trip.durationMin != null && trip.durationMin > 0 && (
+                          <>
+                            {" "}
+                            · в пути ~{formatDurationMin(trip.durationMin)}
+                            {trip.distanceKm != null && trip.distanceKm > 0
+                              ? ` · ${trip.distanceKm} км`
+                              : ""}
+                          </>
+                        )}
                       </div>
                       <Button
                         variant="outline"

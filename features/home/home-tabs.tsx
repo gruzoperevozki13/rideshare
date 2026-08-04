@@ -28,6 +28,8 @@ type DriverTrip = {
   toLat?: number | null;
   toLng?: number | null;
   routePolyline?: string | null;
+  durationMin?: number | null;
+  distanceKm?: number | null;
   bookings: {
     id?: string;
     status?: string;

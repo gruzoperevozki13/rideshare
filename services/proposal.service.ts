@@ -123,6 +123,8 @@ export async function acceptProposal(proposalId: string, passengerId: string) {
         toLat: geo.toLat,
         toLng: geo.toLng,
         routePolyline: geo.routePolyline,
+        durationMin: geo.durationMin,
+        distanceKm: geo.distanceKm,
         date: proposal.wish.date,
         time: proposal.time || "12:00",
         seats: Math.max(proposal.wish.seats, 1) + 1,
