@@ -28,6 +28,13 @@ export function Header() {
           </Link>
           {session?.user ? (
             <>
+              {session.user.isAdmin && (
+                <Link href="/admin">
+                  <Button variant="ghost" size="sm" className="text-primary">
+                    Админ
+                  </Button>
+                </Link>
+              )}
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
                   Кабинет

@@ -532,6 +532,10 @@ export async function checkCredentialsAction(emailRaw: string, password: string)
     return { error: "Неверный email или пароль" as const };
   }
 
+  if (user.bannedAt) {
+    return { error: "Аккаунт заблокирован" as const };
+  }
+
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) {
     return { error: "Неверный email или пароль" as const };

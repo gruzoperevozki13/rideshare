@@ -43,6 +43,8 @@ model User {
   phone         String?
   bio           String?
   role          Role?
+  isAdmin       Boolean   @default(false)
+  bannedAt      DateTime?
   rating        Float     @default(0)
   tripsCount    Int       @default(0)
   carBrand      String?

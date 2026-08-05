@@ -3,6 +3,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/services/auth.service";
+import { isEmailAdmin } from "@/lib/admin-access";
 
 const providers: NextAuthOptions["providers"] = [
   CredentialsProvider({
@@ -33,6 +34,10 @@ const providers: NextAuthOptions["providers"] = [
         throw new Error("EMAIL_NOT_VERIFIED");
       }
 
+      if (user.bannedAt) {
+        throw new Error("Аккаунт заблокирован");
+      }
+
       return {
         id: user.id,
         email: user.email,
@@ -55,21 +60,42 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
       }
+      if (!token.id) return token;
+
+      const dbUser = await prisma.user.findUnique({
+        where: { id: token.id as string },
+        select: {
+          bannedAt: true,
+          isAdmin: true,
+          email: true,
+          role: true,
+          phone: true,
+        },
+      });
+
+      if (!dbUser || dbUser.bannedAt) {
+        token.banned = true;
+        token.isAdmin = false;
+        return token;
+      }
+
+      token.banned = false;
+      token.isAdmin = dbUser.isAdmin || isEmailAdmin(dbUser.email);
+      token.role = dbUser.role;
+      token.phone = dbUser.phone;
       return token;
     },
-    async session({ session, token, user }) {
+    async session({ session, token }) {
       if (session.user) {
-        const userId = user?.id ?? (token.id as string);
-        session.user.id = userId;
-
-        if (userId) {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { role: true, phone: true },
-          });
-          session.user.role = dbUser?.role ?? null;
-          session.user.phone = dbUser?.phone ?? null;
+        if (token.banned) {
+          session.user.id = "";
+          session.user.isAdmin = false;
+          return session;
         }
+        session.user.id = (token.id as string) ?? "";
+        session.user.role = token.role ?? null;
+        session.user.phone = token.phone ?? null;
+        session.user.isAdmin = Boolean(token.isAdmin);
       }
       return session;
     },

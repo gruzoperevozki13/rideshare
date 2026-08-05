@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import type { Role } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isEmailAdmin } from "@/lib/admin-access";
 
 export async function getSession() {
   return getServerSession(authOptions);
@@ -34,4 +35,27 @@ export async function requireRole(...roles: Role[]) {
     throw new Error("Недостаточно прав для этого действия");
   }
   return user;
+}
+
+export { isEmailAdmin };
+
+export async function isUserAdmin(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, isAdmin: true, bannedAt: true },
+  });
+  if (!user || user.bannedAt) return false;
+  return user.isAdmin || isEmailAdmin(user.email);
+}
+
+export async function requireAdmin() {
+  const session = await getSession();
+  if (!session?.user?.id) {
+    throw new Error("UNAUTHORIZED");
+  }
+  const ok = await isUserAdmin(session.user.id);
+  if (!ok) {
+    throw new Error("FORBIDDEN");
+  }
+  return session.user;
 }
