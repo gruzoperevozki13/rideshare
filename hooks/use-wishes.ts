@@ -13,7 +13,9 @@ export type WishSearchItem = {
   toLat?: number | null;
   toLng?: number | null;
   date: string;
+  time?: string | null;
   seats: number;
+  price: number;
   comment: string | null;
   status: string;
   alreadyProposed?: boolean;
@@ -35,6 +37,8 @@ async function fetchWishes(filters: TripSearchData): Promise<WishSearchItem[]> {
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
     seatsMin: filters.seatsMin,
+    priceMin: filters.priceMin,
+    priceMax: filters.priceMax,
     sortBy: filters.sortBy,
     alongRoute: filters.alongRoute,
   });
