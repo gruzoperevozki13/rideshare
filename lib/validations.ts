@@ -60,6 +60,7 @@ export const wishSchema = z.object({
   date: z.string().min(1, "Укажите дату"),
   time: z.string().min(1, "Укажите время"),
   seats: z.coerce.number().int().min(1).max(8).default(1),
+  price: z.coerce.number().min(0, "Укажите цену"),
   comment: z.string().optional(),
 });
 
@@ -186,6 +187,7 @@ export const cargoRequestSchema = z.object({
     (v) => (v === "" || v === null || v === undefined ? undefined : v),
     z.coerce.number().positive().optional()
   ),
+  price: z.coerce.number().min(0, "Укажите цену"),
   comment: z.string().optional(),
 });
 

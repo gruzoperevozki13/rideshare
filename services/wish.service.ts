@@ -13,6 +13,9 @@ export type WishSearchFilters = {
   dateFrom?: string;
   dateTo?: string;
   seatsMin?: number;
+  priceMin?: number;
+  priceMax?: number;
+  sortBy?: "date" | "price_asc" | "price_desc" | "duration";
   alongRoute?: boolean;
   driverId?: string;
 };
@@ -57,10 +60,15 @@ export async function getOpenWishes() {
 }
 
 export async function searchOpenWishes(filters: WishSearchFilters = {}) {
+  const { buildPriceFilter, sortByDatePriceDuration } = await import(
+    "@/lib/search-filters"
+  );
+
   const where: {
     status: "OPEN";
     date?: Date | { gte?: Date; lte?: Date };
     seats?: { gte: number };
+    price?: { gte?: number; lte?: number };
   } = { status: "OPEN" };
 
   const dateFilter = buildDateFilter(filters);
@@ -78,6 +86,9 @@ export async function searchOpenWishes(filters: WishSearchFilters = {}) {
   if (filters.seatsMin != null && filters.seatsMin > 0) {
     where.seats = { gte: filters.seatsMin };
   }
+
+  const priceFilter = buildPriceFilter(filters);
+  if (priceFilter) where.price = priceFilter;
 
   const wishes = await prisma.tripRequest.findMany({
     where,
@@ -166,14 +177,17 @@ export async function searchOpenWishes(filters: WishSearchFilters = {}) {
     }
   }
 
-  return result.map((w) => ({
-    ...w,
-    alreadyProposed: filters.driverId
-      ? w.proposals.some(
-          (p) => p.driverId === filters.driverId && p.status === "PENDING"
-        )
-      : false,
-  }));
+  return sortByDatePriceDuration(
+    result.map((w) => ({
+      ...w,
+      alreadyProposed: filters.driverId
+        ? w.proposals.some(
+            (p) => p.driverId === filters.driverId && p.status === "PENDING"
+          )
+        : false,
+    })),
+    filters.sortBy ?? "date"
+  );
 }
 
 export async function getWishesAlongDriverTrips(driverId: string) {
@@ -249,6 +263,7 @@ export async function createWish(
     date: Date;
     time: string;
     seats: number;
+    price: number;
     comment?: string;
   }
 ) {
@@ -266,6 +281,7 @@ export async function createWish(
       date: data.date,
       time: data.time,
       seats: data.seats,
+      price: data.price,
       comment: data.comment,
       passengerId,
       status: "OPEN",
@@ -282,6 +298,7 @@ export async function updateWish(
     date: Date;
     time: string;
     seats: number;
+    price: number;
     comment?: string;
   }
 ) {
@@ -308,6 +325,7 @@ export async function updateWish(
       date: data.date,
       time: data.time,
       seats: data.seats,
+      price: data.price,
       comment: data.comment,
     },
   });

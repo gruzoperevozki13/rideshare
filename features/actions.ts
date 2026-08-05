@@ -325,6 +325,7 @@ export async function createWishAction(formData: FormData) {
       date: formData.get("date"),
       time: formData.get("time"),
       seats: formData.get("seats") || 1,
+      price: formData.get("price"),
       comment: formData.get("comment") || undefined,
     });
 
@@ -356,6 +357,7 @@ export async function updateWishAction(wishId: string, formData: FormData) {
       date: formData.get("date"),
       time: formData.get("time"),
       seats: formData.get("seats") || 1,
+      price: formData.get("price"),
       comment: formData.get("comment") || undefined,
     });
 
@@ -771,6 +773,7 @@ export async function createCargoRequestAction(formData: FormData) {
       title: formData.get("title"),
       weightKg: formData.get("weightKg"),
       volumeM3: formData.get("volumeM3") || undefined,
+      price: formData.get("price"),
       comment: formData.get("comment") || undefined,
     });
     if (!parsed.success) {
@@ -814,6 +817,7 @@ export async function updateCargoRequestAction(
       title: formData.get("title"),
       weightKg: formData.get("weightKg"),
       volumeM3: formData.get("volumeM3") || undefined,
+      price: formData.get("price"),
       comment: formData.get("comment") || undefined,
     });
     if (!parsed.success) {

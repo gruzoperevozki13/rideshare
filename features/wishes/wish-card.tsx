@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RouteMap } from "@/components/map/route-map";
-import { formatDate, formatRating } from "@/lib/utils";
+import { formatDate, formatPrice, formatRating } from "@/lib/utils";
 
 export type WishCardData = {
   id: string;
@@ -23,6 +23,7 @@ export type WishCardData = {
   date: string | Date;
   time?: string | null;
   seats: number;
+  price: number;
   comment: string | null;
   status: string;
   matchedTripLabel?: string;
@@ -107,24 +108,27 @@ export function WishCard({
             <MapPin className="h-4 w-4 shrink-0 text-primary" />
             {wish.fromCity} → {wish.toCity}
           </CardTitle>
-          {canCancel && wish.status === "OPEN" && (
-            <div className="flex gap-1">
-              {onEdit && (
-                <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Редактировать">
-                  <Pencil className="h-4 w-4" />
+          <div className="flex shrink-0 items-center gap-1">
+            <p className="text-lg font-bold text-primary">{formatPrice(wish.price)}</p>
+            {canCancel && wish.status === "OPEN" && (
+              <div className="flex gap-1">
+                {onEdit && (
+                  <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Редактировать">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={isPending}
+                  onClick={handleDelete}
+                  aria-label="Удалить"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                disabled={isPending}
-                onClick={handleDelete}
-                aria-label="Удалить"
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3 p-4 pt-0">
@@ -207,6 +211,7 @@ export function WishCard({
         {showPropose && canPropose && (
           <ProposeForm
             wishId={wish.id}
+            defaultPrice={wish.price}
             trips={driverTrips}
             onDone={() => setShowPropose(false)}
           />

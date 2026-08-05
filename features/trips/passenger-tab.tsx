@@ -52,6 +52,7 @@ export function PassengerTab({ wishes, incomingProposals }: PassengerTabProps) {
                   date: formatDateForInput(editingWish.date),
                   time: editingWish.time ?? "12:00",
                   seats: editingWish.seats,
+                  price: editingWish.price,
                   comment: editingWish.comment ?? "",
                 }
               : undefined

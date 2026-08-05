@@ -71,6 +71,7 @@ export function ShipperTab({ myRequests }: ShipperTabProps) {
                   time: editing.time,
                   weightKg: editing.weightKg,
                   volumeM3: editing.volumeM3 ?? undefined,
+                  price: editing.price,
                   comment: editing.comment ?? "",
                 }
               : undefined

@@ -38,6 +38,7 @@ export function WishForm({ wishId, defaultValues, onSuccess }: WishFormProps) {
       date: "",
       time: "12:00",
       seats: 1,
+      price: 500,
       comment: "",
       ...defaultValues,
     },
@@ -136,6 +137,20 @@ export function WishForm({ wishId, defaultValues, onSuccess }: WishFormProps) {
             <div className="space-y-2">
               <Label htmlFor="wishSeats">Число мест</Label>
               <Input id="wishSeats" type="number" min={1} max={8} {...register("seats")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="wishPrice">Готов платить, ₽</Label>
+              <Input
+                id="wishPrice"
+                type="number"
+                min={0}
+                step={50}
+                placeholder="1500"
+                {...register("price")}
+              />
+              {errors.price && (
+                <p className="text-sm text-destructive">{errors.price.message}</p>
+              )}
             </div>
           </div>
 

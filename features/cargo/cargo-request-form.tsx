@@ -51,6 +51,7 @@ export function CargoRequestForm({
       time: "10:00",
       title: "",
       weightKg: 100,
+      price: 3000,
       comment: "",
       ...defaultValues,
     },
@@ -209,7 +210,7 @@ export function CargoRequestForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Вес, кг</Label>
               <Input type="number" min={1} {...register("weightKg")} />
@@ -217,6 +218,19 @@ export function CargoRequestForm({
             <div className="space-y-2">
               <Label>Объём, м³ (необязательно)</Label>
               <Input type="number" step="0.1" min={0} {...register("volumeM3")} />
+            </div>
+            <div className="space-y-2">
+              <Label>Готов заплатить, ₽</Label>
+              <Input
+                type="number"
+                min={0}
+                step={100}
+                placeholder="5000"
+                {...register("price")}
+              />
+              {errors.price && (
+                <p className="text-sm text-destructive">{errors.price.message}</p>
+              )}
             </div>
           </div>
 

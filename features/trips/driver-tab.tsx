@@ -378,7 +378,7 @@ export function DriverTab({ trips, nearbyWishes, myProposals }: DriverTabProps) 
               Ищите запросы пассажиров и предлагайте место — быстрее, чем ждать бронирования
             </p>
           </div>
-          <TripSearch onSearch={setWishFilters} showPrice={false} />
+          <TripSearch onSearch={setWishFilters} />
           {wishesLoading && (
             <p className="py-6 text-center text-muted-foreground">Ищем пассажиров...</p>
           )}

@@ -195,6 +195,7 @@ export async function createCargoRequest(
     title: string;
     weightKg: number;
     volumeM3?: number;
+    price: number;
     comment?: string;
     image?: string | null;
   }
@@ -211,6 +212,7 @@ export async function createCargoRequest(
       title: data.title,
       weightKg: data.weightKg,
       volumeM3: data.volumeM3 ?? null,
+      price: data.price,
       comment: data.comment,
       image: data.image ?? null,
       shipperId,
@@ -234,6 +236,7 @@ export async function updateCargoRequest(
     title: string;
     weightKg: number;
     volumeM3?: number;
+    price: number;
     comment?: string;
     image?: string | null;
   }
@@ -259,6 +262,7 @@ export async function updateCargoRequest(
       title: data.title,
       weightKg: data.weightKg,
       volumeM3: data.volumeM3 ?? null,
+      price: data.price,
       comment: data.comment,
       ...(data.image !== undefined ? { image: data.image } : {}),
       fromLat: geo.fromLat,
@@ -295,15 +299,17 @@ export async function searchCargoRequests(filters: {
   date?: string;
   dateFrom?: string;
   dateTo?: string;
+  priceMin?: number;
+  priceMax?: number;
   sortBy?: "date" | "price_asc" | "price_desc" | "duration";
 }) {
-  const { buildDateFilter, sortByDatePriceDuration } = await import(
-    "@/lib/search-filters"
-  );
+  const { buildDateFilter, buildPriceFilter, sortByDatePriceDuration } =
+    await import("@/lib/search-filters");
 
   const where: {
     status: "OPEN";
     date?: Date | { gte?: Date; lte?: Date };
+    price?: { gte?: number; lte?: number };
   } = { status: "OPEN" };
 
   const dateFilter = buildDateFilter(filters);
@@ -317,6 +323,9 @@ export async function searchCargoRequests(filters: {
       };
     }
   }
+
+  const priceFilter = buildPriceFilter(filters);
+  if (priceFilter) where.price = priceFilter;
 
   const requests = await prisma.cargoRequest.findMany({
     where,

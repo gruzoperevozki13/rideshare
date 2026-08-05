@@ -26,7 +26,7 @@ import { RouteMap } from "@/components/map/route-map";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDate, formatRating } from "@/lib/utils";
+import { formatDate, formatPrice, formatRating } from "@/lib/utils";
 
 export type CargoRequestCardData = {
   id: string;
@@ -37,6 +37,7 @@ export type CargoRequestCardData = {
   title: string;
   weightKg: number;
   volumeM3?: number | null;
+  price: number;
   comment: string | null;
   image?: string | null;
   status: string;
@@ -139,29 +140,34 @@ export function CargoRequestCard({
             <Package className="h-4 w-4 shrink-0 text-primary" />
             {request.title}
           </CardTitle>
-          {canManage && request.status === "OPEN" && (
-            <div className="flex gap-1">
-              {onEdit && (
+          <div className="flex shrink-0 items-center gap-1">
+            <p className="text-lg font-bold text-primary">
+              {formatPrice(request.price)}
+            </p>
+            {canManage && request.status === "OPEN" && (
+              <div className="flex gap-1">
+                {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onEdit}
+                    aria-label="Редактировать"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={onEdit}
-                  aria-label="Редактировать"
+                  disabled={isPending}
+                  onClick={handleDelete}
+                  aria-label="Удалить"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                disabled={isPending}
-                onClick={handleDelete}
-                aria-label="Удалить"
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3 p-4 pt-0">

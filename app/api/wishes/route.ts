@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
     dateFrom: searchParams.get("dateFrom") ?? undefined,
     dateTo: searchParams.get("dateTo") ?? undefined,
     seatsMin: searchParams.get("seatsMin") ?? undefined,
+    priceMin: searchParams.get("priceMin") ?? undefined,
+    priceMax: searchParams.get("priceMax") ?? undefined,
     sortBy: searchParams.get("sortBy") ?? undefined,
     alongRoute: searchParams.get("alongRoute") === "true",
   });

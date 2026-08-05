@@ -151,6 +151,7 @@ model TripRequest {
   date        DateTime   @db.Date
   time        String     @default("12:00")
   seats       Int        @default(1)
+  price       Float      @default(0)
   comment     String?
   status      WishStatus @default(OPEN)
   passengerId String
@@ -267,6 +268,7 @@ model CargoRequest {
   title       String
   weightKg    Float
   volumeM3    Float?
+  price       Float      @default(0)
   comment     String?
   image       String?
   status      WishStatus @default(OPEN)
