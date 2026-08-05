@@ -1,22 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTrips } from "@/services/trip.service";
 import { parseRoutePolyline } from "@/lib/geo";
+import { tripSearchSchema } from "@/lib/validations";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
-  const alongRoute = searchParams.get("alongRoute") === "true";
-
-  const trips = await getTrips({
+  const parsed = tripSearchSchema.safeParse({
     fromCity: searchParams.get("fromCity") ?? undefined,
     toCity: searchParams.get("toCity") ?? undefined,
     date: searchParams.get("date") ?? undefined,
-    alongRoute,
+    dateFrom: searchParams.get("dateFrom") ?? undefined,
+    dateTo: searchParams.get("dateTo") ?? undefined,
+    priceMin: searchParams.get("priceMin") ?? undefined,
+    priceMax: searchParams.get("priceMax") ?? undefined,
+    seatsMin: searchParams.get("seatsMin") ?? undefined,
+    sortBy: searchParams.get("sortBy") ?? undefined,
+    alongRoute: searchParams.get("alongRoute") === "true",
   });
 
-  // Mark along-route matches (not exact city text match)
-  const fromQ = searchParams.get("fromCity")?.trim().toLowerCase();
-  const toQ = searchParams.get("toCity")?.trim().toLowerCase();
+  const filters = parsed.success
+    ? parsed.data
+    : ({ alongRoute: true } as const);
+
+  const alongRoute = Boolean(filters.alongRoute);
+
+  const trips = await getTrips(filters);
+
+  const fromQ = "fromCity" in filters ? filters.fromCity?.trim().toLowerCase() : undefined;
+  const toQ = "toCity" in filters ? filters.toCity?.trim().toLowerCase() : undefined;
 
   const enriched = trips.map((trip) => {
     const exactFrom = !fromQ || trip.fromCity.toLowerCase().includes(fromQ);

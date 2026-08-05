@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { TripSearchData } from "@/lib/validations";
+import { appendSearchParams } from "@/lib/search-filters";
 
 export type WishSearchItem = {
   id: string;
@@ -27,10 +28,16 @@ export type WishSearchItem = {
 
 async function fetchWishes(filters: TripSearchData): Promise<WishSearchItem[]> {
   const params = new URLSearchParams();
-  if (filters.fromCity) params.set("fromCity", filters.fromCity);
-  if (filters.toCity) params.set("toCity", filters.toCity);
-  if (filters.date) params.set("date", filters.date);
-  if (filters.alongRoute) params.set("alongRoute", "true");
+  appendSearchParams(params, {
+    fromCity: filters.fromCity,
+    toCity: filters.toCity,
+    date: filters.date,
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+    seatsMin: filters.seatsMin,
+    sortBy: filters.sortBy,
+    alongRoute: filters.alongRoute,
+  });
 
   const res = await fetch(`/api/wishes?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch wishes");

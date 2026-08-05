@@ -28,7 +28,23 @@ export const tripSchema = z.object({
 export const tripSearchSchema = z.object({
   fromCity: z.string().optional(),
   toCity: z.string().optional(),
+  /** Точная дата (если задана — имеет приоритет над диапазоном) */
   date: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  priceMin: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z.coerce.number().min(0).optional()
+  ),
+  priceMax: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z.coerce.number().min(0).optional()
+  ),
+  seatsMin: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z.coerce.number().int().min(1).max(8).optional()
+  ),
+  sortBy: z.enum(["date", "price_asc", "price_desc", "duration"]).optional(),
   alongRoute: z.coerce.boolean().optional(),
 });
 
@@ -177,6 +193,22 @@ export const cargoSearchSchema = z.object({
   fromCity: z.string().optional(),
   toCity: z.string().optional(),
   date: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  priceMin: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z.coerce.number().min(0).optional()
+  ),
+  priceMax: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z.coerce.number().min(0).optional()
+  ),
+  sortBy: z.enum(["date", "price_asc", "price_desc", "duration"]).optional(),
+  alongRoute: z.coerce.boolean().optional(),
+  seatsMin: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z.coerce.number().int().min(1).max(8).optional()
+  ),
 });
 
 export type TripFormData = z.infer<typeof tripSchema>;

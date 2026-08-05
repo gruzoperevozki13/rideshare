@@ -118,20 +118,56 @@ export async function listAdminUsers(opts: {
   };
 }
 
-export async function listAdminTrips(opts: { page?: number }) {
+export async function listAdminTrips(opts: {
+  page?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  date?: string;
+  priceMin?: number;
+  priceMax?: number;
+  q?: string;
+  sortBy?: "date" | "price_asc" | "price_desc" | "duration";
+}) {
   const page = Math.max(1, opts.page ?? 1);
-  const [total, trips] = await Promise.all([
-    prisma.trip.count(),
-    prisma.trip.findMany({
-      orderBy: [{ date: "desc" }, { time: "desc" }],
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      include: {
-        driver: { select: { id: true, name: true, email: true } },
-        _count: { select: { bookings: true } },
-      },
-    }),
-  ]);
+  const { buildDateFilter, buildPriceFilter, sortByDatePriceDuration } =
+    await import("@/lib/search-filters");
+
+  const where: Prisma.TripWhereInput = {};
+  const dateFilter = buildDateFilter(opts);
+  if (dateFilter) {
+    if ("equals" in dateFilter && dateFilter.equals) {
+      where.date = dateFilter.equals;
+    } else {
+      where.date = {
+        ...(dateFilter.gte ? { gte: dateFilter.gte } : {}),
+        ...(dateFilter.lte ? { lte: dateFilter.lte } : {}),
+      };
+    }
+  }
+  const priceFilter = buildPriceFilter(opts);
+  if (priceFilter) where.price = priceFilter;
+
+  const q = opts.q?.trim();
+  if (q) {
+    where.OR = [
+      { fromCity: { contains: q, mode: "insensitive" } },
+      { toCity: { contains: q, mode: "insensitive" } },
+      { driver: { email: { contains: q, mode: "insensitive" } } },
+      { driver: { name: { contains: q, mode: "insensitive" } } },
+    ];
+  }
+
+  const allMatching = await prisma.trip.findMany({
+    where,
+    include: {
+      driver: { select: { id: true, name: true, email: true } },
+      _count: { select: { bookings: true } },
+    },
+  });
+
+  const sorted = sortByDatePriceDuration(allMatching, opts.sortBy ?? "date");
+  const total = sorted.length;
+  const trips = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return {
     trips,

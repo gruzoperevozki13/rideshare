@@ -116,12 +116,34 @@ export async function searchCargoTrips(filters: {
   fromCity?: string;
   toCity?: string;
   date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  priceMin?: number;
+  priceMax?: number;
+  sortBy?: "date" | "price_asc" | "price_desc" | "duration";
 }) {
+  const { buildDateFilter, buildPriceFilter, sortByDatePriceDuration } =
+    await import("@/lib/search-filters");
+
   const where: {
-    date?: Date;
+    date?: Date | { gte?: Date; lte?: Date };
+    price?: { gte?: number; lte?: number };
   } = {};
 
-  if (filters.date) where.date = new Date(filters.date);
+  const dateFilter = buildDateFilter(filters);
+  if (dateFilter) {
+    if ("equals" in dateFilter && dateFilter.equals) {
+      where.date = dateFilter.equals;
+    } else {
+      where.date = {
+        ...(dateFilter.gte ? { gte: dateFilter.gte } : {}),
+        ...(dateFilter.lte ? { lte: dateFilter.lte } : {}),
+      };
+    }
+  }
+
+  const priceFilter = buildPriceFilter(filters);
+  if (priceFilter) where.price = priceFilter;
 
   const trips = await prisma.cargoTrip.findMany({
     where,
@@ -140,17 +162,19 @@ export async function searchCargoTrips(filters: {
       },
     },
     orderBy: [{ date: "asc" }, { time: "asc" }],
-    take: 50,
+    take: 100,
   });
 
   const fromQ = filters.fromCity?.trim().toLowerCase();
   const toQ = filters.toCity?.trim().toLowerCase();
 
-  return trips.filter((t) => {
+  const filtered = trips.filter((t) => {
     const fromOk = !fromQ || t.fromCity.toLowerCase().includes(fromQ);
     const toOk = !toQ || t.toCity.toLowerCase().includes(toQ);
     return fromOk && toOk;
   });
+
+  return sortByDatePriceDuration(filtered, filters.sortBy ?? "date");
 }
 
 export async function deleteCargoTrip(tripId: string, carrierId: string) {
@@ -269,13 +293,30 @@ export async function searchCargoRequests(filters: {
   fromCity?: string;
   toCity?: string;
   date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  sortBy?: "date" | "price_asc" | "price_desc" | "duration";
 }) {
+  const { buildDateFilter, sortByDatePriceDuration } = await import(
+    "@/lib/search-filters"
+  );
+
   const where: {
     status: "OPEN";
-    date?: Date;
+    date?: Date | { gte?: Date; lte?: Date };
   } = { status: "OPEN" };
 
-  if (filters.date) where.date = new Date(filters.date);
+  const dateFilter = buildDateFilter(filters);
+  if (dateFilter) {
+    if ("equals" in dateFilter && dateFilter.equals) {
+      where.date = dateFilter.equals;
+    } else {
+      where.date = {
+        ...(dateFilter.gte ? { gte: dateFilter.gte } : {}),
+        ...(dateFilter.lte ? { lte: dateFilter.lte } : {}),
+      };
+    }
+  }
 
   const requests = await prisma.cargoRequest.findMany({
     where,
@@ -289,17 +330,19 @@ export async function searchCargoRequests(filters: {
       },
     },
     orderBy: [{ date: "asc" }, { time: "asc" }],
-    take: 50,
+    take: 100,
   });
 
   const fromQ = filters.fromCity?.trim().toLowerCase();
   const toQ = filters.toCity?.trim().toLowerCase();
 
-  return requests.filter((r) => {
+  const filtered = requests.filter((r) => {
     const fromOk = !fromQ || r.fromCity.toLowerCase().includes(fromQ);
     const toOk = !toQ || r.toCity.toLowerCase().includes(toQ);
     return fromOk && toOk;
   });
+
+  return sortByDatePriceDuration(filtered, filters.sortBy ?? "date");
 }
 
 export async function cancelCargoRequest(requestId: string, shipperId: string) {

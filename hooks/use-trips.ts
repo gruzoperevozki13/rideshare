@@ -3,13 +3,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { TripSearchData } from "@/lib/validations";
 import { TripCardData } from "@/features/trips/trip-card";
+import { appendSearchParams } from "@/lib/search-filters";
 
 async function fetchTrips(filters: TripSearchData): Promise<TripCardData[]> {
   const params = new URLSearchParams();
-  if (filters.fromCity) params.set("fromCity", filters.fromCity);
-  if (filters.toCity) params.set("toCity", filters.toCity);
-  if (filters.date) params.set("date", filters.date);
-  if (filters.alongRoute) params.set("alongRoute", "true");
+  appendSearchParams(params, {
+    fromCity: filters.fromCity,
+    toCity: filters.toCity,
+    date: filters.date,
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+    priceMin: filters.priceMin,
+    priceMax: filters.priceMax,
+    seatsMin: filters.seatsMin,
+    sortBy: filters.sortBy,
+    alongRoute: filters.alongRoute,
+  });
 
   const res = await fetch(`/api/trips?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch trips");

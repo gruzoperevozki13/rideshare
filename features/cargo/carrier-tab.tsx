@@ -80,6 +80,11 @@ export function CarrierTab({ trips }: CarrierTabProps) {
       if (filters.fromCity) sp.set("from", filters.fromCity);
       if (filters.toCity) sp.set("to", filters.toCity);
       if (filters.date) sp.set("date", filters.date);
+      if (filters.dateFrom) sp.set("dateFrom", filters.dateFrom);
+      if (filters.dateTo) sp.set("dateTo", filters.dateTo);
+      if (filters.priceMin != null) sp.set("priceMin", String(filters.priceMin));
+      if (filters.priceMax != null) sp.set("priceMax", String(filters.priceMax));
+      if (filters.sortBy) sp.set("sortBy", filters.sortBy);
       const res = await fetch(`/api/cargo?${sp}`);
       if (!res.ok) throw new Error("fail");
       return res.json() as Promise<CargoRequestCardData[]>;
@@ -332,7 +337,7 @@ export function CarrierTab({ trips }: CarrierTabProps) {
           <p className="text-sm text-muted-foreground">
             Ищите грузы по маршруту и предлагайте перевозку
           </p>
-          <TripSearch onSearch={setFilters} />
+          <TripSearch onSearch={setFilters} showAlongRoute={false} showSeats={false} />
           {isLoading && (
             <p className="py-6 text-center text-muted-foreground">Ищем грузы…</p>
           )}

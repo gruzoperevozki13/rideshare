@@ -2,18 +2,70 @@ import Link from "next/link";
 import { listAdminTrips } from "@/services/admin.service";
 import { DeleteTripButton } from "@/features/admin/delete-trip-button";
 import { formatDate, formatDurationMin, formatPrice } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default async function AdminTripsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    priceMin?: string;
+    priceMax?: string;
+    q?: string;
+    sortBy?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const page = Number(sp.page || "1") || 1;
-  const data = await listAdminTrips({ page });
+  const sortBy = (sp.sortBy as "date" | "price_asc" | "price_desc" | "duration") || "date";
+  const data = await listAdminTrips({
+    page,
+    dateFrom: sp.dateFrom,
+    dateTo: sp.dateTo,
+    priceMin: sp.priceMin ? Number(sp.priceMin) : undefined,
+    priceMax: sp.priceMax ? Number(sp.priceMax) : undefined,
+    q: sp.q,
+    sortBy,
+  });
+
+  const qs = (extra: Record<string, string | number>) => {
+    const p = new URLSearchParams();
+    if (sp.q) p.set("q", sp.q);
+    if (sp.dateFrom) p.set("dateFrom", sp.dateFrom);
+    if (sp.dateTo) p.set("dateTo", sp.dateTo);
+    if (sp.priceMin) p.set("priceMin", sp.priceMin);
+    if (sp.priceMax) p.set("priceMax", sp.priceMax);
+    if (sp.sortBy) p.set("sortBy", sp.sortBy);
+    for (const [k, v] of Object.entries(extra)) p.set(k, String(v));
+    return p.toString();
+  };
 
   return (
     <div className="space-y-4">
+      <form className="grid gap-3 rounded-2xl border bg-white/90 p-4 sm:grid-cols-2 lg:grid-cols-3" action="/admin/trips">
+        <Input name="q" defaultValue={sp.q ?? ""} placeholder="Маршрут / водитель" />
+        <Input name="dateFrom" type="date" defaultValue={sp.dateFrom ?? ""} />
+        <Input name="dateTo" type="date" defaultValue={sp.dateTo ?? ""} />
+        <Input name="priceMin" type="number" min={0} defaultValue={sp.priceMin ?? ""} placeholder="Цена от" />
+        <Input name="priceMax" type="number" min={0} defaultValue={sp.priceMax ?? ""} placeholder="Цена до" />
+        <select
+          name="sortBy"
+          defaultValue={sortBy}
+          className="flex h-11 w-full rounded-xl border border-border/90 bg-white/90 px-4 text-sm"
+        >
+          <option value="date">По дате</option>
+          <option value="price_asc">Сначала дешевле</option>
+          <option value="price_desc">Сначала дороже</option>
+          <option value="duration">По времени в пути</option>
+        </select>
+        <Button type="submit" className="sm:col-span-2 lg:col-span-3">
+          Применить фильтры
+        </Button>
+      </form>
+
       <p className="text-sm text-muted-foreground">
         Всего: {data.total} · стр. {data.page}/{data.totalPages}
       </p>
@@ -62,7 +114,7 @@ export default async function AdminTripsPage({
             {data.trips.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
-                  Поездок пока нет
+                  Поездок не найдено
                 </td>
               </tr>
             )}
@@ -73,12 +125,18 @@ export default async function AdminTripsPage({
       {data.totalPages > 1 && (
         <div className="flex gap-2">
           {page > 1 && (
-            <Link href={`/admin/trips?page=${page - 1}`} className="text-sm text-primary hover:underline">
+            <Link
+              href={`/admin/trips?${qs({ page: page - 1 })}`}
+              className="text-sm text-primary hover:underline"
+            >
               ← Назад
             </Link>
           )}
           {page < data.totalPages && (
-            <Link href={`/admin/trips?page=${page + 1}`} className="text-sm text-primary hover:underline">
+            <Link
+              href={`/admin/trips?${qs({ page: page + 1 })}`}
+              className="text-sm text-primary hover:underline"
+            >
               Вперёд →
             </Link>
           )}

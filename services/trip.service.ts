@@ -6,6 +6,11 @@ import {
   parseRoutePolyline,
   type LatLng,
 } from "@/lib/geo";
+import {
+  buildDateFilter,
+  buildPriceFilter,
+  sortByDatePriceDuration,
+} from "@/lib/search-filters";
 
 export type TripWithDriver = Prisma.TripGetPayload<{
   include: {
@@ -29,8 +34,21 @@ export type TripWithDriver = Prisma.TripGetPayload<{
 export async function getTrips(filters: TripSearchData = {}) {
   const where: Prisma.TripWhereInput = {};
 
-  if (filters.date) {
-    where.date = new Date(filters.date);
+  const dateFilter = buildDateFilter(filters);
+  if (dateFilter) {
+    if ("equals" in dateFilter && dateFilter.equals) {
+      where.date = dateFilter.equals;
+    } else {
+      where.date = {
+        ...(dateFilter.gte ? { gte: dateFilter.gte } : {}),
+        ...(dateFilter.lte ? { lte: dateFilter.lte } : {}),
+      };
+    }
+  }
+
+  const priceFilter = buildPriceFilter(filters);
+  if (priceFilter) {
+    where.price = priceFilter;
   }
 
   const trips = await prisma.trip.findMany({
@@ -57,15 +75,22 @@ export async function getTrips(filters: TripSearchData = {}) {
     orderBy: [{ date: "asc" }, { time: "asc" }],
   });
 
+  let result = trips;
+
+  if (filters.seatsMin != null && filters.seatsMin > 0) {
+    result = result.filter(
+      (trip) => trip.seats - trip.bookings.length >= filters.seatsMin!
+    );
+  }
+
   const fromQ = filters.fromCity?.trim();
   const toQ = filters.toCity?.trim();
 
   if (!fromQ && !toQ) {
-    return trips;
+    return sortByDatePriceDuration(result, filters.sortBy ?? "date");
   }
 
-  // Exact / contains city match
-  const textMatched = trips.filter((trip) => {
+  const textMatched = result.filter((trip) => {
     const fromOk =
       !fromQ || trip.fromCity.toLowerCase().includes(fromQ.toLowerCase());
     const toOk = !toQ || trip.toCity.toLowerCase().includes(toQ.toLowerCase());
@@ -73,10 +98,9 @@ export async function getTrips(filters: TripSearchData = {}) {
   });
 
   if (!filters.alongRoute) {
-    return textMatched;
+    return sortByDatePriceDuration(textMatched, filters.sortBy ?? "date");
   }
 
-  // Along-route: geocode search cities and check proximity to trip polyline
   const { geocodeCity } = await import("@/services/geocode.service");
   const [fromCoords, toCoords] = await Promise.all([
     fromQ ? geocodeCity(fromQ) : Promise.resolve(null),
@@ -84,11 +108,10 @@ export async function getTrips(filters: TripSearchData = {}) {
   ]);
 
   if (!fromCoords && !toCoords) {
-    return textMatched;
+    return sortByDatePriceDuration(textMatched, filters.sortBy ?? "date");
   }
 
-  const alongMatched = trips.filter((trip) => {
-    // Already in text match — keep
+  const alongMatched = result.filter((trip) => {
     const inText = textMatched.some((t) => t.id === trip.id);
     if (inText) return true;
 
@@ -108,12 +131,13 @@ export async function getTrips(filters: TripSearchData = {}) {
     return fromNear && toNear;
   });
 
-  // Prefer exact matches first
   const exactIds = new Set(textMatched.map((t) => t.id));
-  return [
+  const merged = [
     ...textMatched,
     ...alongMatched.filter((t) => !exactIds.has(t.id)),
   ];
+
+  return sortByDatePriceDuration(merged, filters.sortBy ?? "date");
 }
 
 export async function getTripById(id: string) {

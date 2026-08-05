@@ -4,11 +4,15 @@ import {
   parseRoutePolyline,
   type LatLng,
 } from "@/lib/geo";
+import { buildDateFilter } from "@/lib/search-filters";
 
 export type WishSearchFilters = {
   fromCity?: string;
   toCity?: string;
   date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  seatsMin?: number;
   alongRoute?: boolean;
   driverId?: string;
 };
@@ -55,11 +59,24 @@ export async function getOpenWishes() {
 export async function searchOpenWishes(filters: WishSearchFilters = {}) {
   const where: {
     status: "OPEN";
-    date?: Date;
+    date?: Date | { gte?: Date; lte?: Date };
+    seats?: { gte: number };
   } = { status: "OPEN" };
 
-  if (filters.date) {
-    where.date = new Date(filters.date);
+  const dateFilter = buildDateFilter(filters);
+  if (dateFilter) {
+    if ("equals" in dateFilter && dateFilter.equals) {
+      where.date = dateFilter.equals;
+    } else {
+      where.date = {
+        ...(dateFilter.gte ? { gte: dateFilter.gte } : {}),
+        ...(dateFilter.lte ? { lte: dateFilter.lte } : {}),
+      };
+    }
+  }
+
+  if (filters.seatsMin != null && filters.seatsMin > 0) {
+    where.seats = { gte: filters.seatsMin };
   }
 
   const wishes = await prisma.tripRequest.findMany({
