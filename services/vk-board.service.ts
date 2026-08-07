@@ -14,8 +14,7 @@ import {
 import {
   buildVkPostUrl,
   extractPostText,
-  fetchVkWall,
-  resolveVkGroup,
+  fetchVkWallByDomain,
   vkThrottle,
   type VkProfile,
 } from "@/services/vk-api.service";
@@ -145,13 +144,29 @@ export async function syncVkBoards() {
 
     await cleanupExpiredTripsAndWishes().catch(() => null);
 
+    const groupErrors: string[] = [];
+
     for (const group of VK_BOARD_GROUPS) {
       await vkThrottle();
-      const meta = await resolveVkGroup(group.screenName);
-      if (!meta) continue;
+      let wall;
+      try {
+        wall = await fetchVkWallByDomain(group.screenName, 50);
+      } catch (error) {
+        groupErrors.push(
+          `${group.screenName}: ${error instanceof Error ? error.message : "ошибка"}`
+        );
+        continue;
+      }
 
-      await vkThrottle();
-      const wall = await fetchVkWall(-meta.id, 40);
+      const meta = wall.groups[0];
+      const groupId = meta
+        ? String(meta.id)
+        : wall.items[0]
+          ? String(Math.abs(wall.items[0].owner_id))
+          : group.screenName;
+      const groupScreen = meta?.screen_name || group.screenName;
+      const groupName = meta?.name || group.screenName;
+
       const profileMap = new Map<number, VkProfile>(
         wall.profiles.map((p) => [p.id, p])
       );
@@ -209,9 +224,9 @@ export async function syncVkBoards() {
           data: {
             kind: group.kind,
             vkPostId,
-            groupId: String(meta.id),
-            groupScreen: meta.screen_name || group.screenName,
-            groupName: meta.name,
+            groupId,
+            groupScreen,
+            groupName,
             authorVkId,
             authorName,
             text,
@@ -235,6 +250,7 @@ export async function syncVkBoards() {
       kept,
       duplicates,
       skippedSpam,
+      groupErrors,
     };
   } catch (error) {
     const message =

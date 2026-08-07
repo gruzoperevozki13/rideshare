@@ -101,6 +101,33 @@ export async function fetchVkWall(
   };
 }
 
+/** Надёжнее для коротких имён групп: wall.get?domain=screen_name */
+export async function fetchVkWallByDomain(
+  domain: string,
+  count = 50
+): Promise<{
+  items: VkWallPost[];
+  profiles: VkProfile[];
+  groups: VkGroup[];
+}> {
+  const response = await vkCall<{
+    items: VkWallPost[];
+    profiles?: VkProfile[];
+    groups?: VkGroup[];
+  }>("wall.get", {
+    domain,
+    count,
+    filter: "all",
+    extended: 1,
+  });
+
+  return {
+    items: response.items ?? [],
+    profiles: response.profiles ?? [],
+    groups: response.groups ?? [],
+  };
+}
+
 export function buildVkPostUrl(ownerId: number, postId: number): string {
   return `https://vk.com/wall${ownerId}_${postId}`;
 }
