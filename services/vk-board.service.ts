@@ -20,7 +20,7 @@ import {
   type VkProfile,
 } from "@/services/vk-api.service";
 
-const STALE_MS = 20 * 60 * 1000;
+const STALE_MS = 5 * 60 * 1000;
 
 export async function listBoardPosts(
   kind: BoardKind,
