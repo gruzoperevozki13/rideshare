@@ -94,7 +94,7 @@ export function parseDateFromAdText(text: string, postedAt: Date): Date | null {
   if (monthName) {
     const day = Number(monthName[1]);
     const month = MONTHS[monthName[2]];
-    let year = monthName[3] ? Number(monthName[3]) : py;
+    const year = monthName[3] ? Number(monthName[3]) : py;
     if (month == null || day < 1 || day > 31) return null;
     let expires = endOfMoscowDay(year, month, day);
     if (!monthName[3] && expires.getTime() < postedAt.getTime() - 12 * 60 * 60 * 1000) {
