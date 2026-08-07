@@ -22,7 +22,18 @@ export async function GET(request: NextRequest) {
   }
   try {
     const result = await syncAllBoards();
-    return NextResponse.json({ ok: true, ...result });
+    // удобный плоский срез по VK для отладки в curl
+    const vk =
+      result && typeof result === "object" && "vk" in result
+        ? (result as { vk: Record<string, unknown> }).vk
+        : null;
+    return NextResponse.json({
+      ok: true,
+      ...result,
+      configuredGroups: vk?.configuredGroups ?? null,
+      perGroup: vk?.perGroup ?? null,
+      groupErrors: vk?.groupErrors ?? null,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Ошибка" },

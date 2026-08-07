@@ -166,17 +166,53 @@ export async function syncVkBoards() {
     await cleanupExpiredTripsAndWishes().catch(() => null);
 
     const groupErrors: string[] = [];
+    const perGroup: {
+      screen: string;
+      fetched: number;
+      kept: number;
+      skipped: number;
+      error?: string;
+    }[] = [];
 
     for (const group of VK_BOARD_GROUPS) {
       await vkThrottle();
       let wall;
+      let groupFetched = 0;
+      let groupKept = 0;
+      let groupSkipped = 0;
       try {
         wall = await fetchVkWallByDomain(group.screenName, 50);
       } catch (error) {
-        groupErrors.push(
-          `${group.screenName}: ${error instanceof Error ? error.message : "ошибка"}`
-        );
-        continue;
+        // запасной путь: resolve id → wall.get по owner_id
+        try {
+          await vkThrottle();
+          const { resolveVkGroup, fetchVkWall } = await import(
+            "@/services/vk-api.service"
+          );
+          const metaOnly = await resolveVkGroup(group.screenName);
+          if (!metaOnly) throw error;
+          await vkThrottle();
+          wall = await fetchVkWall(-metaOnly.id, 50);
+          if (!wall.groups.length) {
+            wall.groups = [metaOnly];
+          }
+        } catch (error2) {
+          const msg =
+            error2 instanceof Error
+              ? error2.message
+              : error instanceof Error
+                ? error.message
+                : "ошибка";
+          groupErrors.push(`${group.screenName}: ${msg}`);
+          perGroup.push({
+            screen: group.screenName,
+            fetched: 0,
+            kept: 0,
+            skipped: 0,
+            error: msg,
+          });
+          continue;
+        }
       }
 
       const meta = wall.groups[0];
@@ -194,6 +230,7 @@ export async function syncVkBoards() {
 
       for (const post of wall.items) {
         fetched++;
+        groupFetched++;
         const text = extractPostText(post);
         const relevant = isRelevantBoardPost(text, group.kind, {
           markedAsAds: post.marked_as_ads === 1,
@@ -201,6 +238,7 @@ export async function syncVkBoards() {
         });
         if (!relevant) {
           skippedSpam++;
+          groupSkipped++;
           continue;
         }
 
@@ -216,6 +254,7 @@ export async function syncVkBoards() {
 
         if (expiresAt < expiredBefore()) {
           skippedSpam++;
+          groupSkipped++;
           continue;
         }
 
@@ -230,6 +269,7 @@ export async function syncVkBoards() {
             });
           }
           kept++;
+          groupKept++;
           continue;
         }
 
@@ -241,37 +281,78 @@ export async function syncVkBoards() {
           postedAt,
         });
 
-        await prisma.vkBoardPost.create({
-          data: {
-            kind: group.kind,
-            vkPostId,
-            groupId,
-            groupScreen,
-            groupName,
-            authorVkId,
-            authorName,
-            text,
-            postUrl: buildVkPostUrl(post.owner_id, post.id),
-            postedAt,
-            expiresAt,
-            textHash: hash,
-            isDuplicate: isDup,
-            source: "VK",
-          },
-        });
+        try {
+          await prisma.vkBoardPost.create({
+            data: {
+              kind: group.kind,
+              vkPostId,
+              groupId,
+              groupScreen,
+              groupName,
+              authorVkId,
+              authorName,
+              text,
+              postUrl: buildVkPostUrl(post.owner_id, post.id),
+              postedAt,
+              expiresAt,
+              textHash: hash,
+              isDuplicate: isDup,
+              source: "VK",
+            },
+          });
+        } catch {
+          try {
+            // совместимость со старой схемой без source
+            await prisma.vkBoardPost.create({
+              data: {
+                kind: group.kind,
+                vkPostId,
+                groupId,
+                groupScreen,
+                groupName,
+                authorVkId,
+                authorName,
+                text,
+                postUrl: buildVkPostUrl(post.owner_id, post.id),
+                postedAt,
+                expiresAt,
+                textHash: hash,
+                isDuplicate: isDup,
+              } as never,
+            });
+          } catch (createErr) {
+            const msg =
+              createErr instanceof Error ? createErr.message : "create failed";
+            groupErrors.push(`${group.screenName} create ${vkPostId}: ${msg}`);
+            groupSkipped++;
+            continue;
+          }
+        }
 
         if (isDup) duplicates++;
-        else kept++;
+        else {
+          kept++;
+          groupKept++;
+        }
       }
+
+      perGroup.push({
+        screen: group.screenName,
+        fetched: groupFetched,
+        kept: groupKept,
+        skipped: groupSkipped,
+      });
     }
 
     return {
       skipped: false as const,
+      configuredGroups: VK_BOARD_GROUPS.map((g) => `${g.kind}:${g.screenName}`),
       fetched,
       kept,
       duplicates,
       skippedSpam,
       groupErrors,
+      perGroup,
     };
   } catch (error) {
     const message =

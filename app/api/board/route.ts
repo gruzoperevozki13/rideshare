@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { VK_BOARD_GROUPS } from "@/lib/vk-groups";
 import {
   listBoardPosts,
   maybeSyncVkBoards,
@@ -41,5 +42,13 @@ export async function GET(request: NextRequest) {
     80,
     parsed.data.q?.trim() || undefined
   );
-  return NextResponse.json({ posts, sync: syncMeta });
+  const groupScreens = [
+    ...new Set(posts.map((p) => p.groupScreen).filter(Boolean)),
+  ].sort();
+  return NextResponse.json({
+    posts,
+    sync: syncMeta,
+    configuredGroups: VK_BOARD_GROUPS.map((g) => `${g.kind}:${g.screenName}`),
+    activeGroupScreens: groupScreens,
+  });
 }
