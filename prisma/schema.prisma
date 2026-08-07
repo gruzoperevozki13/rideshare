@@ -339,12 +339,14 @@ model VkBoardPost {
   text         String
   postUrl      String
   postedAt     DateTime
+  expiresAt    DateTime?
   textHash     String
   isDuplicate  Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   @@index([kind, isDuplicate, postedAt])
+  @@index([kind, isDuplicate, expiresAt])
   @@index([textHash])
   @@index([authorVkId, textHash])
 }

@@ -32,6 +32,9 @@ export type TripWithDriver = Prisma.TripGetPayload<{
 }>;
 
 export async function getTrips(filters: TripSearchData = {}) {
+  const { activeDateFloor, filterActiveByDateTime } = await import(
+    "@/services/cleanup.service"
+  );
   const where: Prisma.TripWhereInput = {};
 
   const dateFilter = buildDateFilter(filters);
@@ -44,6 +47,8 @@ export async function getTrips(filters: TripSearchData = {}) {
         ...(dateFilter.lte ? { lte: dateFilter.lte } : {}),
       };
     }
+  } else {
+    where.date = { gte: activeDateFloor() };
   }
 
   const priceFilter = buildPriceFilter(filters);
@@ -75,7 +80,7 @@ export async function getTrips(filters: TripSearchData = {}) {
     orderBy: [{ date: "asc" }, { time: "asc" }],
   });
 
-  let result = trips;
+  let result = filterActiveByDateTime(trips);
 
   if (filters.seatsMin != null && filters.seatsMin > 0) {
     result = result.filter(
@@ -160,8 +165,11 @@ export async function getTripById(id: string) {
 }
 
 export async function getDriverTrips(driverId: string) {
-  return prisma.trip.findMany({
-    where: { driverId },
+  const { filterActiveByDateTime, activeDateFloor } = await import(
+    "@/services/cleanup.service"
+  );
+  const trips = await prisma.trip.findMany({
+    where: { driverId, date: { gte: activeDateFloor() } },
     include: {
       bookings: {
         where: { status: { in: ["PENDING", "CONFIRMED"] } },
@@ -178,6 +186,7 @@ export async function getDriverTrips(driverId: string) {
     },
     orderBy: [{ date: "desc" }, { time: "desc" }],
   });
+  return filterActiveByDateTime(trips);
 }
 
 export async function getUserBookings(userId: string) {

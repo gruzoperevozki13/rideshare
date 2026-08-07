@@ -6,6 +6,11 @@ import {
   isRelevantBoardPost,
   textSimilarity,
 } from "@/lib/vk-filter";
+import { resolveVkPostExpiresAt } from "@/lib/vk-expire";
+import {
+  cleanupExpiredTripsAndWishes,
+  expiredBefore,
+} from "@/services/cleanup.service";
 import {
   buildVkPostUrl,
   extractPostText,
@@ -18,8 +23,21 @@ import {
 const STALE_MS = 20 * 60 * 1000;
 
 export async function listBoardPosts(kind: BoardKind, limit = 60) {
+  const threshold = expiredBefore();
   return prisma.vkBoardPost.findMany({
-    where: { kind, isDuplicate: false },
+    where: {
+      kind,
+      isDuplicate: false,
+      OR: [
+        { expiresAt: { gt: threshold } },
+        {
+          expiresAt: null,
+          postedAt: {
+            gt: new Date(threshold.getTime() - 2 * 24 * 60 * 60 * 1000),
+          },
+        },
+      ],
+    },
     orderBy: { postedAt: "desc" },
     take: limit,
   });
@@ -30,6 +48,7 @@ export async function getSyncState() {
 }
 
 export async function maybeSyncVkBoards(force = false) {
+  await cleanupExpiredTripsAndWishes().catch(() => null);
   const state = await getSyncState();
   const last = state?.lastSyncAt?.getTime() ?? 0;
   if (!force && Date.now() - last < STALE_MS) {
@@ -48,6 +67,8 @@ export async function syncVkBoards() {
     if (!process.env.VK_SERVICE_TOKEN) {
       throw new Error("VK_SERVICE_TOKEN не задан");
     }
+
+    await cleanupExpiredTripsAndWishes().catch(() => null);
 
     for (const group of VK_BOARD_GROUPS) {
       await vkThrottle();
@@ -80,11 +101,23 @@ export async function syncVkBoards() {
           : null;
         const hash = boardTextHash(text);
         const postedAt = new Date(post.date * 1000);
+        const expiresAt = resolveVkPostExpiresAt(text, postedAt);
+
+        if (expiresAt < expiredBefore()) {
+          skippedSpam++;
+          continue;
+        }
 
         const existing = await prisma.vkBoardPost.findUnique({
           where: { vkPostId },
         });
         if (existing) {
+          if (!existing.expiresAt) {
+            await prisma.vkBoardPost.update({
+              where: { id: existing.id },
+              data: { expiresAt },
+            });
+          }
           kept++;
           continue;
         }
@@ -109,6 +142,7 @@ export async function syncVkBoards() {
             text,
             postUrl: buildVkPostUrl(post.owner_id, post.id),
             postedAt,
+            expiresAt,
             textHash: hash,
             isDuplicate: isDup,
           },
@@ -133,7 +167,8 @@ export async function syncVkBoards() {
       skippedSpam,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Ошибка синхронизации VK";
+    const message =
+      error instanceof Error ? error.message : "Ошибка синхронизации VK";
     await prisma.vkSyncState.upsert({
       where: { id: "default" },
       create: { id: "default", lastError: message },

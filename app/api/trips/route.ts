@@ -23,6 +23,11 @@ export async function GET(request: NextRequest) {
     ? parsed.data
     : ({ alongRoute: true } as const);
 
+  // Фоновая очистка просроченных объявлений (не блокируем ответ при ошибке)
+  void import("@/services/cleanup.service").then((m) =>
+    m.cleanupExpiredTripsAndWishes().catch(() => null)
+  );
+
   const alongRoute = Boolean(filters.alongRoute);
 
   const trips = await getTrips(filters);

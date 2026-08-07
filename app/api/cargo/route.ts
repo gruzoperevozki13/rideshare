@@ -19,6 +19,10 @@ export async function GET(request: NextRequest) {
 
   const filters = parsed.success ? parsed.data : {};
 
+  void import("@/services/cleanup.service").then((m) =>
+    m.cleanupExpiredTripsAndWishes().catch(() => null)
+  );
+
   if (type === "requests") {
     const data = await searchCargoRequests(filters);
     return NextResponse.json(data);

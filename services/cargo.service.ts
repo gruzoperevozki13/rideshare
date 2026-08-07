@@ -96,8 +96,11 @@ export async function updateCargoTrip(
 }
 
 export async function getCarrierCargoTrips(carrierId: string) {
-  return prisma.cargoTrip.findMany({
-    where: { carrierId },
+  const { filterActiveByDateTime, activeDateFloor } = await import(
+    "@/services/cleanup.service"
+  );
+  const trips = await prisma.cargoTrip.findMany({
+    where: { carrierId, date: { gte: activeDateFloor() } },
     include: {
       bookings: {
         where: { status: { in: ACTIVE } },
@@ -110,6 +113,7 @@ export async function getCarrierCargoTrips(carrierId: string) {
     },
     orderBy: [{ date: "desc" }, { time: "desc" }],
   });
+  return filterActiveByDateTime(trips);
 }
 
 export async function searchCargoTrips(filters: {
@@ -124,6 +128,9 @@ export async function searchCargoTrips(filters: {
 }) {
   const { buildDateFilter, buildPriceFilter, sortByDatePriceDuration } =
     await import("@/lib/search-filters");
+  const { filterActiveByDateTime, activeDateFloor } = await import(
+    "@/services/cleanup.service"
+  );
 
   const where: {
     date?: Date | { gte?: Date; lte?: Date };
@@ -140,6 +147,8 @@ export async function searchCargoTrips(filters: {
         ...(dateFilter.lte ? { lte: dateFilter.lte } : {}),
       };
     }
+  } else {
+    where.date = { gte: activeDateFloor() };
   }
 
   const priceFilter = buildPriceFilter(filters);
@@ -168,7 +177,7 @@ export async function searchCargoTrips(filters: {
   const fromQ = filters.fromCity?.trim().toLowerCase();
   const toQ = filters.toCity?.trim().toLowerCase();
 
-  const filtered = trips.filter((t) => {
+  const filtered = filterActiveByDateTime(trips).filter((t) => {
     const fromOk = !fromQ || t.fromCity.toLowerCase().includes(fromQ);
     const toOk = !toQ || t.toCity.toLowerCase().includes(toQ);
     return fromOk && toOk;
@@ -274,10 +283,14 @@ export async function updateCargoRequest(
 }
 
 export async function getShipperCargoRequests(shipperId: string) {
-  return prisma.cargoRequest.findMany({
+  const { filterActiveByDateTime, activeDateFloor } = await import(
+    "@/services/cleanup.service"
+  );
+  const requests = await prisma.cargoRequest.findMany({
     where: {
       shipperId,
       status: { in: ["OPEN", "MATCHED"] },
+      date: { gte: activeDateFloor() },
     },
     include: {
       bookings: {
@@ -291,6 +304,7 @@ export async function getShipperCargoRequests(shipperId: string) {
     },
     orderBy: [{ date: "asc" }, { createdAt: "desc" }],
   });
+  return filterActiveByDateTime(requests);
 }
 
 export async function searchCargoRequests(filters: {
@@ -305,6 +319,9 @@ export async function searchCargoRequests(filters: {
 }) {
   const { buildDateFilter, buildPriceFilter, sortByDatePriceDuration } =
     await import("@/lib/search-filters");
+  const { filterActiveByDateTime, activeDateFloor } = await import(
+    "@/services/cleanup.service"
+  );
 
   const where: {
     status: "OPEN";
@@ -322,6 +339,8 @@ export async function searchCargoRequests(filters: {
         ...(dateFilter.lte ? { lte: dateFilter.lte } : {}),
       };
     }
+  } else {
+    where.date = { gte: activeDateFloor() };
   }
 
   const priceFilter = buildPriceFilter(filters);
@@ -345,7 +364,7 @@ export async function searchCargoRequests(filters: {
   const fromQ = filters.fromCity?.trim().toLowerCase();
   const toQ = filters.toCity?.trim().toLowerCase();
 
-  const filtered = requests.filter((r) => {
+  const filtered = filterActiveByDateTime(requests).filter((r) => {
     const fromOk = !fromQ || r.fromCity.toLowerCase().includes(fromQ);
     const toOk = !toQ || r.toCity.toLowerCase().includes(toQ);
     return fromOk && toOk;

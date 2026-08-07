@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
 
 /** Дата+время + 1 час — порог удаления. Время интерпретируется как Europe/Moscow. */
-function expiredBefore(now = new Date()) {
+export function expiredBefore(now = new Date()) {
   return new Date(now.getTime() - 60 * 60 * 1000);
 }
 
-function combineDateAndTime(date: Date, time: string): Date {
+export function combineDateAndTime(date: Date, time: string): Date {
   const [h = "0", m = "0"] = time.split(":");
   const y = date.getUTCFullYear();
   const mo = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -13,6 +13,27 @@ function combineDateAndTime(date: Date, time: string): Date {
   const hh = String(Number(h)).padStart(2, "0");
   const mm = String(Number(m)).padStart(2, "0");
   return new Date(`${y}-${mo}-${day}T${hh}:${mm}:00+03:00`);
+}
+
+/** Объявление ещё актуально (дата+время не прошли дольше чем на 1 час). */
+export function isListingActive(
+  date: Date,
+  time: string | null | undefined,
+  now = new Date()
+) {
+  return combineDateAndTime(date, time || "23:59") >= expiredBefore(now);
+}
+
+export function filterActiveByDateTime<
+  T extends { date: Date; time?: string | null },
+>(items: T[], now = new Date()): T[] {
+  return items.filter((item) => isListingActive(item.date, item.time, now));
+}
+
+/** Нижняя граница даты для SQL-фильтра (вчера по UTC-дате хранения). */
+export function activeDateFloor(now = new Date()) {
+  const t = expiredBefore(now);
+  return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() - 1));
 }
 
 export async function cleanupExpiredTripsAndWishes() {
@@ -52,17 +73,17 @@ export async function cleanupExpiredTripsAndWishes() {
   let deletedCargoRequests = 0;
 
   if (expiredTripIds.length) {
-    const result = await prisma.trip.deleteMany({
-      where: { id: { in: expiredTripIds } },
-    });
-    deletedTrips = result.count;
+    deletedTrips = (
+      await prisma.trip.deleteMany({ where: { id: { in: expiredTripIds } } })
+    ).count;
   }
 
   if (expiredWishIds.length) {
-    const result = await prisma.tripRequest.deleteMany({
-      where: { id: { in: expiredWishIds } },
-    });
-    deletedWishes = result.count;
+    deletedWishes = (
+      await prisma.tripRequest.deleteMany({
+        where: { id: { in: expiredWishIds } },
+      })
+    ).count;
   }
 
   if (expiredCargoTripIds.length) {
@@ -81,5 +102,27 @@ export async function cleanupExpiredTripsAndWishes() {
     ).count;
   }
 
-  return { deletedTrips, deletedWishes, deletedCargoTrips, deletedCargoRequests };
+  const deletedVkPosts = (
+    await prisma.vkBoardPost.deleteMany({
+      where: {
+        OR: [
+          { expiresAt: { lt: threshold } },
+          {
+            expiresAt: null,
+            postedAt: {
+              lt: new Date(threshold.getTime() - 2 * 24 * 60 * 60 * 1000),
+            },
+          },
+        ],
+      },
+    })
+  ).count;
+
+  return {
+    deletedTrips,
+    deletedWishes,
+    deletedCargoTrips,
+    deletedCargoRequests,
+    deletedVkPosts,
+  };
 }

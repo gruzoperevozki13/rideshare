@@ -21,10 +21,14 @@ export type WishSearchFilters = {
 };
 
 export async function getPassengerWishes(passengerId: string) {
-  return prisma.tripRequest.findMany({
+  const { filterActiveByDateTime, activeDateFloor } = await import(
+    "@/services/cleanup.service"
+  );
+  const wishes = await prisma.tripRequest.findMany({
     where: {
       passengerId,
       status: { in: ["OPEN", "MATCHED"] },
+      date: { gte: activeDateFloor() },
     },
     include: {
       proposals: {
@@ -42,11 +46,15 @@ export async function getPassengerWishes(passengerId: string) {
     },
     orderBy: [{ date: "asc" }, { createdAt: "desc" }],
   });
+  return filterActiveByDateTime(wishes);
 }
 
 export async function getOpenWishes() {
-  return prisma.tripRequest.findMany({
-    where: { status: "OPEN" },
+  const { filterActiveByDateTime, activeDateFloor } = await import(
+    "@/services/cleanup.service"
+  );
+  const wishes = await prisma.tripRequest.findMany({
+    where: { status: "OPEN", date: { gte: activeDateFloor() } },
     include: {
       passenger: {
         select: { id: true, name: true, image: true, rating: true },
@@ -57,11 +65,15 @@ export async function getOpenWishes() {
     },
     orderBy: [{ date: "asc" }, { createdAt: "desc" }],
   });
+  return filterActiveByDateTime(wishes);
 }
 
 export async function searchOpenWishes(filters: WishSearchFilters = {}) {
   const { buildPriceFilter, sortByDatePriceDuration } = await import(
     "@/lib/search-filters"
+  );
+  const { filterActiveByDateTime, activeDateFloor } = await import(
+    "@/services/cleanup.service"
   );
 
   const where: {
@@ -81,6 +93,8 @@ export async function searchOpenWishes(filters: WishSearchFilters = {}) {
         ...(dateFilter.lte ? { lte: dateFilter.lte } : {}),
       };
     }
+  } else {
+    where.date = { gte: activeDateFloor() };
   }
 
   if (filters.seatsMin != null && filters.seatsMin > 0) {
@@ -106,7 +120,7 @@ export async function searchOpenWishes(filters: WishSearchFilters = {}) {
   const fromQ = filters.fromCity?.trim();
   const toQ = filters.toCity?.trim();
 
-  let result = wishes;
+  let result = filterActiveByDateTime(wishes);
 
   if (fromQ || toQ) {
     const textMatched = wishes.filter((w) => {

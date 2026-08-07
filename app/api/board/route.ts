@@ -28,6 +28,10 @@ export async function GET(request: NextRequest) {
         error: error instanceof Error ? error.message : "Ошибка синхронизации",
       };
     }
+  } else {
+    void import("@/services/cleanup.service").then((m) =>
+      m.cleanupExpiredTripsAndWishes().catch(() => null)
+    );
   }
 
   const posts = await listBoardPosts(parsed.data.kind, 80);
