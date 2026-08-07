@@ -15,12 +15,13 @@ import {
 } from "@/services/cargo.service";
 import { prisma } from "@/lib/prisma";
 import { HomeTabs } from "@/features/home/home-tabs";
+import { GuestHome } from "@/features/home/guest-home";
 
 export default async function HomePage() {
   const session = await getSession();
 
   if (!session?.user) {
-    redirect("/login");
+    return <GuestHome />;
   }
 
   const user = await getCurrentUser();

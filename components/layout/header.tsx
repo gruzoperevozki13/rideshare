@@ -54,6 +54,11 @@ export function Header() {
             </>
           ) : (
             <div className="flex items-center gap-2">
+              <Link href="/">
+                <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+                  Объявления
+                </Button>
+              </Link>
               <Link href="/register">
                 <Button variant="outline" size="sm">
                   Регистрация

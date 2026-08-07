@@ -320,3 +320,38 @@ model CargoMessage {
 
   @@index([cargoBookingId, createdAt])
 }
+
+enum BoardKind {
+  RIDES
+  CARGO
+}
+
+/** Объявления с досок VK (попутчики / грузоперевозки) */
+model VkBoardPost {
+  id           String    @id @default(cuid())
+  kind         BoardKind
+  vkPostId     String    @unique
+  groupId      Int
+  groupScreen  String
+  groupName    String
+  authorVkId   Int?
+  authorName   String?
+  text         String
+  postUrl      String
+  postedAt     DateTime
+  textHash     String
+  isDuplicate  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([kind, isDuplicate, postedAt])
+  @@index([textHash])
+  @@index([authorVkId, textHash])
+}
+
+model VkSyncState {
+  id         String   @id @default("default")
+  lastSyncAt DateTime?
+  lastError  String?
+  updatedAt  DateTime @updatedAt
+}
