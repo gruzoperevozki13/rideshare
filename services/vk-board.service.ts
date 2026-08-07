@@ -22,9 +22,13 @@ import {
 
 const STALE_MS = 20 * 60 * 1000;
 
-export async function listBoardPosts(kind: BoardKind, limit = 60) {
+export async function listBoardPosts(
+  kind: BoardKind,
+  limit = 60,
+  query?: string
+) {
   const threshold = expiredBefore();
-  return prisma.vkBoardPost.findMany({
+  const posts = await prisma.vkBoardPost.findMany({
     where: {
       kind,
       isDuplicate: false,
@@ -39,8 +43,24 @@ export async function listBoardPosts(kind: BoardKind, limit = 60) {
       ],
     },
     orderBy: { postedAt: "desc" },
-    take: limit,
+    take: Math.max(limit * 3, 120),
   });
+
+  const tokens = (query ?? "")
+    .toLowerCase()
+    .split(/[\s,;]+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2);
+
+  const filtered =
+    tokens.length === 0
+      ? posts
+      : posts.filter((p) => {
+          const hay = `${p.text} ${p.groupName} ${p.groupScreen} ${p.authorName ?? ""}`.toLowerCase();
+          return tokens.every((t) => hay.includes(t));
+        });
+
+  return filtered.slice(0, limit);
 }
 
 export async function getSyncState() {

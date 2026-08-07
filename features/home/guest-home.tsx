@@ -14,8 +14,8 @@ export function GuestHome() {
             Доски объявлений из VK
           </h1>
           <p className="mt-4 max-w-lg text-base leading-relaxed text-white/80 animate-fade-up stagger-1">
-            Смотрите свежие объявления попутчиков и грузоперевозок без регистрации. Чтобы
-            разместить своё или договориться — войдите в сервис.
+            Смотрите и ищите объявления попутчиков и грузоперевозок. Чтобы открыть пост в
+            VK или откликнуться — войдите в сервис.
           </p>
         </div>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent" />

@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Loader2, Package, Users } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { ExternalLink, Loader2, Package, Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 
@@ -30,26 +32,58 @@ function formatPostedAt(value: string) {
   return `${date}, ${time}`;
 }
 
-export function PublicBoardTabs() {
-  const [kind, setKind] = useState<BoardKind>("RIDES");
+export function PublicBoardTabs({
+  initialKind = "RIDES",
+}: {
+  initialKind?: BoardKind;
+}) {
+  const { data: session } = useSession();
+  const isAuthed = Boolean(session?.user);
+
+  const [kind, setKind] = useState<BoardKind>(initialKind);
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setKind(initialKind);
+  }, [initialKind]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 350);
+    return () => clearTimeout(t);
+  }, [query]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetch(`/api/board?kind=${kind}&sync=1`)
+    const params = new URLSearchParams({
+      kind,
+      sync: "1",
+    });
+    if (debouncedQuery) params.set("q", debouncedQuery);
+
+    fetch(`/api/board?${params.toString()}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Не удалось загрузить объявления");
-        return res.json() as Promise<{ posts: BoardPost[]; sync?: { error?: string } }>;
+        return res.json() as Promise<{
+          posts: BoardPost[];
+          sync?: { error?: string };
+        }>;
       })
       .then((data) => {
         if (cancelled) return;
         setPosts(data.posts ?? []);
-        if (data.sync && typeof data.sync === "object" && "error" in data.sync && data.sync.error) {
+        if (
+          data.sync &&
+          typeof data.sync === "object" &&
+          "error" in data.sync &&
+          data.sync.error
+        ) {
           setError(String(data.sync.error));
         }
       })
@@ -66,7 +100,15 @@ export function PublicBoardTabs() {
     return () => {
       cancelled = true;
     };
-  }, [kind]);
+  }, [kind, debouncedQuery]);
+
+  const loginForVk = useMemo(
+    () => (postUrl: string) =>
+      `/login?callbackUrl=${encodeURIComponent(`/board/open?to=${encodeURIComponent(postUrl)}`)}`,
+    []
+  );
+
+  const loginHome = `/login?callbackUrl=${encodeURIComponent(`/board?kind=${kind}`)}`;
 
   return (
     <div className="space-y-5">
@@ -89,21 +131,38 @@ export function PublicBoardTabs() {
         </Button>
       </div>
 
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={
+            kind === "RIDES"
+              ? "Поиск: Москва, Казань, попутчик…"
+              : "Поиск: груз, газель, Самара…"
+          }
+          className="h-11 pl-10"
+        />
+      </div>
+
       <p className="text-sm text-muted-foreground">
-        Объявления из открытых групп ВКонтакте. Чтобы разместить своё или откликнуться —
-        войдите в RideShare.
+        Объявления из открытых групп ВКонтакте.
+        {!isAuthed &&
+          " Чтобы открыть пост в VK или откликнуться — войдите или зарегистрируйтесь."}
       </p>
 
-      <div className="flex flex-wrap gap-2">
-        <Link href={`/login?callbackUrl=${encodeURIComponent("/")}`}>
-          <Button size="sm">Войти и продолжить</Button>
-        </Link>
-        <Link href="/register">
-          <Button size="sm" variant="outline">
-            Регистрация
-          </Button>
-        </Link>
-      </div>
+      {!isAuthed && (
+        <div className="flex flex-wrap gap-2">
+          <Link href={loginHome}>
+            <Button size="sm">Войти</Button>
+          </Link>
+          <Link href="/register">
+            <Button size="sm" variant="outline">
+              Регистрация
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {loading && (
         <p className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
@@ -120,8 +179,9 @@ export function PublicBoardTabs() {
 
       {!loading && posts.length === 0 && (
         <p className="py-10 text-center text-muted-foreground">
-          Пока нет подходящих объявлений. Загляните чуть позже — доска обновляется
-          автоматически.
+          {debouncedQuery
+            ? "Ничего не найдено по этому запросу — попробуйте другие слова."
+            : "Пока нет подходящих объявлений. Загляните чуть позже — доска обновляется автоматически."}
         </p>
       )}
 
@@ -146,17 +206,34 @@ export function PublicBoardTabs() {
                 {post.text}
               </p>
               <div className="flex flex-wrap gap-2">
-                <a href={post.postUrl} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    Открыть в VK
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Button>
-                </a>
-                <Link
-                  href={`/login?callbackUrl=${encodeURIComponent("/")}`}
-                >
-                  <Button size="sm">Откликнуться в RideShare</Button>
-                </Link>
+                {isAuthed ? (
+                  <a
+                    href={`/board/open?to=${encodeURIComponent(post.postUrl)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      Открыть в VK
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Button>
+                  </a>
+                ) : (
+                  <Link href={loginForVk(post.postUrl)}>
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      Открыть в VK
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                )}
+                {!isAuthed ? (
+                  <Link href={loginHome}>
+                    <Button size="sm">Откликнуться в RideShare</Button>
+                  </Link>
+                ) : (
+                  <Link href="/">
+                    <Button size="sm">К своим объявлениям</Button>
+                  </Link>
+                )}
               </div>
             </CardContent>
           </Card>
