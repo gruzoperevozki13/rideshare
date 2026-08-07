@@ -20,6 +20,13 @@ import {
 } from "@/services/vk-api.service";
 
 const STALE_MS = 5 * 60 * 1000;
+/** Prisma Int = INT4; VK/TG id иногда больше — в БД не пишем */
+const INT4_MAX = 2147483647;
+
+function fitAuthorId(id: number | null | undefined): number | null {
+  if (id == null || !Number.isFinite(id) || id <= 0 || id > INT4_MAX) return null;
+  return Math.trunc(id);
+}
 
 export async function listBoardPosts(
   kind: BoardKind,
@@ -243,7 +250,7 @@ export async function syncVkBoards() {
         }
 
         const vkPostId = `${post.owner_id}_${post.id}`;
-        const authorVkId = post.from_id && post.from_id > 0 ? post.from_id : null;
+        const authorVkId = fitAuthorId(post.from_id);
         const author = authorVkId ? profileMap.get(authorVkId) : undefined;
         const authorName = author
           ? `${author.first_name} ${author.last_name}`.trim()
@@ -273,35 +280,35 @@ export async function syncVkBoards() {
           continue;
         }
 
-        const isDup = await findDuplicate({
-          kind: group.kind,
-          text,
-          textHash: hash,
-          authorVkId,
-          postedAt,
-        });
-
         try {
-          await prisma.vkBoardPost.create({
-            data: {
-              kind: group.kind,
-              vkPostId,
-              groupId,
-              groupScreen,
-              groupName,
-              authorVkId,
-              authorName,
-              text,
-              postUrl: buildVkPostUrl(post.owner_id, post.id),
-              postedAt,
-              expiresAt,
-              textHash: hash,
-              isDuplicate: isDup,
-              source: "VK",
-            },
+          const isDup = await findDuplicate({
+            kind: group.kind,
+            text,
+            textHash: hash,
+            authorVkId,
+            postedAt,
           });
-        } catch {
+
           try {
+            await prisma.vkBoardPost.create({
+              data: {
+                kind: group.kind,
+                vkPostId,
+                groupId,
+                groupScreen,
+                groupName,
+                authorVkId,
+                authorName,
+                text,
+                postUrl: buildVkPostUrl(post.owner_id, post.id),
+                postedAt,
+                expiresAt,
+                textHash: hash,
+                isDuplicate: isDup,
+                source: "VK",
+              },
+            });
+          } catch {
             // совместимость со старой схемой без source
             await prisma.vkBoardPost.create({
               data: {
@@ -320,19 +327,18 @@ export async function syncVkBoards() {
                 isDuplicate: isDup,
               } as never,
             });
-          } catch (createErr) {
-            const msg =
-              createErr instanceof Error ? createErr.message : "create failed";
-            groupErrors.push(`${group.screenName} create ${vkPostId}: ${msg}`);
-            groupSkipped++;
-            continue;
           }
-        }
 
-        if (isDup) duplicates++;
-        else {
-          kept++;
-          groupKept++;
+          if (isDup) duplicates++;
+          else {
+            kept++;
+            groupKept++;
+          }
+        } catch (postErr) {
+          const msg =
+            postErr instanceof Error ? postErr.message : "post failed";
+          groupErrors.push(`${group.screenName} ${vkPostId}: ${msg}`);
+          groupSkipped++;
         }
       }
 
@@ -378,13 +384,14 @@ async function findDuplicate(input: {
   });
   if (sameHash) return true;
 
-  if (input.authorVkId) {
+  const authorId = fitAuthorId(input.authorVkId);
+  if (authorId) {
     const from = new Date(input.postedAt.getTime() - 7 * 24 * 60 * 60 * 1000);
     const to = new Date(input.postedAt.getTime() + 7 * 24 * 60 * 60 * 1000);
     const candidates = await prisma.vkBoardPost.findMany({
       where: {
         kind: input.kind,
-        authorVkId: input.authorVkId,
+        authorVkId: authorId,
         isDuplicate: false,
         postedAt: { gte: from, lte: to },
       },
