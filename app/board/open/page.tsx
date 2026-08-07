@@ -1,7 +1,25 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 
-/** Открыть пост VK только для авторизованных */
+function isSafeExternalUrl(target: string) {
+  try {
+    const u = new URL(target);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    const host = u.hostname.replace(/^www\./, "");
+    return (
+      host === "vk.com" ||
+      host === "vk.ru" ||
+      host === "m.vk.com" ||
+      host === "t.me" ||
+      host === "telegram.me" ||
+      host.endsWith(".t.me")
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Открыть пост VK/Telegram только для авторизованных */
 export default async function BoardOpenPage({
   searchParams,
 }: {
@@ -10,19 +28,15 @@ export default async function BoardOpenPage({
   const { to } = await searchParams;
   const target = typeof to === "string" ? to.trim() : "";
 
-  const safe =
-    target.startsWith("https://vk.com/") ||
-    target.startsWith("https://vk.ru/") ||
-    target.startsWith("http://vk.com/") ||
-    target.startsWith("http://vk.ru/");
-
-  if (!safe) {
+  if (!isSafeExternalUrl(target)) {
     redirect("/board");
   }
 
   const session = await getSession();
   if (!session?.user) {
-    redirect(`/login?callbackUrl=${encodeURIComponent(`/board/open?to=${encodeURIComponent(target)}`)}`);
+    redirect(
+      `/login?callbackUrl=${encodeURIComponent(`/board/open?to=${encodeURIComponent(target)}`)}`
+    );
   }
 
   redirect(target);

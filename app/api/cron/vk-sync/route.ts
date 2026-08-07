@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { syncVkBoards } from "@/services/vk-board.service";
+import { syncAllBoards } from "@/services/vk-board.service";
+
+export const runtime = "nodejs";
+export const maxDuration = 120;
 
 function authorize(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -18,7 +21,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
-    const result = await syncVkBoards();
+    const result = await syncAllBoards();
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     return NextResponse.json(

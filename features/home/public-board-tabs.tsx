@@ -13,6 +13,7 @@ type BoardKind = "RIDES" | "CARGO";
 
 type BoardPost = {
   id: string;
+  source?: "VK" | "TELEGRAM";
   kind: BoardKind;
   text: string;
   postUrl: string;
@@ -191,14 +192,15 @@ export function PublicBoardTabs({
             <CardHeader className="pb-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <CardTitle className="text-base font-medium">
-                  {post.authorName || "Объявление из VK"}
+                  {post.authorName || "Объявление"}
                 </CardTitle>
                 <span className="text-xs text-muted-foreground">
                   {formatPostedAt(post.postedAt)}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Группа: {post.groupName} (@{post.groupScreen})
+                {post.source === "TELEGRAM" ? "Telegram" : "VK"}: {post.groupName}
+                {post.groupScreen ? ` (@${post.groupScreen.replace(/^-100/, "")})` : ""}
               </p>
             </CardHeader>
             <CardContent className="space-y-3 p-4 pt-0">
@@ -213,14 +215,14 @@ export function PublicBoardTabs({
                     rel="noopener noreferrer"
                   >
                     <Button variant="outline" size="sm" className="gap-1.5">
-                      Открыть в VK
+                      {post.source === "TELEGRAM" ? "Открыть в Telegram" : "Открыть в VK"}
                       <ExternalLink className="h-3.5 w-3.5" />
                     </Button>
                   </a>
                 ) : (
                   <Link href={loginForVk(post.postUrl)}>
                     <Button variant="outline" size="sm" className="gap-1.5">
-                      Открыть в VK
+                      {post.source === "TELEGRAM" ? "Открыть в Telegram" : "Открыть в VK"}
                       <ExternalLink className="h-3.5 w-3.5" />
                     </Button>
                   </Link>

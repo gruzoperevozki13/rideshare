@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [],
   },
+  serverExternalPackages: ["telegram", "big-integer"],
   async headers() {
     return [
       {

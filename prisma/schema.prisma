@@ -326,12 +326,18 @@ enum BoardKind {
   CARGO
 }
 
-/** Объявления с досок VK (попутчики / грузоперевозки) */
+enum BoardSource {
+  VK
+  TELEGRAM
+}
+
+/** Объявления с досок (VK / Telegram) */
 model VkBoardPost {
-  id           String    @id @default(cuid())
+  id           String      @id @default(cuid())
+  source       BoardSource @default(VK)
   kind         BoardKind
-  vkPostId     String    @unique
-  groupId      Int
+  vkPostId     String      @unique
+  groupId      String
   groupScreen  String
   groupName    String
   authorVkId   Int?
@@ -341,12 +347,13 @@ model VkBoardPost {
   postedAt     DateTime
   expiresAt    DateTime?
   textHash     String
-  isDuplicate  Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  isDuplicate  Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   @@index([kind, isDuplicate, postedAt])
   @@index([kind, isDuplicate, expiresAt])
+  @@index([source, kind])
   @@index([textHash])
   @@index([authorVkId, textHash])
 }

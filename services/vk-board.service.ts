@@ -74,7 +74,55 @@ export async function maybeSyncVkBoards(force = false) {
   if (!force && Date.now() - last < STALE_MS) {
     return { skipped: true as const, reason: "fresh" as const };
   }
-  return syncVkBoards();
+  return syncAllBoards();
+}
+
+export async function syncAllBoards() {
+  const vk = await syncVkBoards().catch((error) => ({
+    skipped: false as const,
+    error: error instanceof Error ? error.message : "VK error",
+    fetched: 0,
+    kept: 0,
+    duplicates: 0,
+    skippedSpam: 0,
+  }));
+
+  const { syncTelegramBoards } = await import(
+    "@/services/telegram-board.service"
+  );
+  const telegram = await syncTelegramBoards().catch((error) => ({
+    skipped: false as const,
+    error: error instanceof Error ? error.message : "Telegram error",
+    fetched: 0,
+    kept: 0,
+    duplicates: 0,
+    skippedSpam: 0,
+  }));
+
+  await prisma.vkSyncState.upsert({
+    where: { id: "default" },
+    create: {
+      id: "default",
+      lastSyncAt: new Date(),
+      lastError:
+        ("error" in vk && vk.error) || ("error" in telegram && telegram.error)
+          ? [ ("error" in vk && vk.error) || null, ("error" in telegram && telegram.error) || null]
+              .filter(Boolean)
+              .join(" | ")
+          : null,
+    },
+    update: {
+      lastSyncAt: new Date(),
+      lastError:
+        ("error" in vk && vk.error) || ("error" in telegram && telegram.error)
+          ? [("error" in vk && vk.error) || null, ("error" in telegram && telegram.error) || null]
+              .filter(Boolean)
+              .join(" | ")
+          : null,
+    },
+  });
+
+  return { skipped: false as const, vk, telegram };
 }
 
 export async function syncVkBoards() {
@@ -85,7 +133,14 @@ export async function syncVkBoards() {
 
   try {
     if (!process.env.VK_SERVICE_TOKEN) {
-      throw new Error("VK_SERVICE_TOKEN не задан");
+      return {
+        skipped: true as const,
+        reason: "not_configured" as const,
+        fetched: 0,
+        kept: 0,
+        duplicates: 0,
+        skippedSpam: 0,
+      };
     }
 
     await cleanupExpiredTripsAndWishes().catch(() => null);
@@ -154,7 +209,7 @@ export async function syncVkBoards() {
           data: {
             kind: group.kind,
             vkPostId,
-            groupId: meta.id,
+            groupId: String(meta.id),
             groupScreen: meta.screen_name || group.screenName,
             groupName: meta.name,
             authorVkId,
@@ -165,6 +220,7 @@ export async function syncVkBoards() {
             expiresAt,
             textHash: hash,
             isDuplicate: isDup,
+            source: "VK",
           },
         });
 
@@ -172,12 +228,6 @@ export async function syncVkBoards() {
         else kept++;
       }
     }
-
-    await prisma.vkSyncState.upsert({
-      where: { id: "default" },
-      create: { id: "default", lastSyncAt: new Date(), lastError: null },
-      update: { lastSyncAt: new Date(), lastError: null },
-    });
 
     return {
       skipped: false as const,
@@ -189,12 +239,7 @@ export async function syncVkBoards() {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Ошибка синхронизации VK";
-    await prisma.vkSyncState.upsert({
-      where: { id: "default" },
-      create: { id: "default", lastError: message },
-      update: { lastError: message },
-    });
-    throw error;
+    throw new Error(message);
   }
 }
 
