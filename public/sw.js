@@ -1,6 +1,6 @@
-/* RideShare PWA — кэш оболочки + сеть для страниц */
-const CACHE = "rideshare-shell-v1";
-const PRECACHE = ["/", "/icons/icon-192.png", "/icons/icon-512.png", "/manifest.webmanifest"];
+/* RideShare PWA — кэш оболочки; JS/CSS сборки всегда с сети */
+const CACHE = "rideshare-shell-v2";
+const PRECACHE = ["/icons/icon-192.png", "/icons/icon-512.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -23,18 +23,17 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  // API и авторизация — только сеть
+  // API, auth и бандл Next — только сеть (иначе после деплоя ломается сайт)
   if (
     url.pathname.startsWith("/api/") ||
     url.pathname.startsWith("/login") ||
-    url.pathname.startsWith("/register")
+    url.pathname.startsWith("/register") ||
+    url.pathname.startsWith("/_next/")
   ) {
     return;
   }
 
-  // Статика: cache-first
   if (
-    url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||
     url.pathname.endsWith(".png") ||
     url.pathname.endsWith(".webp") ||
@@ -57,7 +56,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Страницы: network-first, офлайн — из кэша
   event.respondWith(
     fetch(req)
       .then((res) => {
