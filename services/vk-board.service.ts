@@ -68,11 +68,32 @@ export async function getSyncState() {
 
 export async function maybeSyncVkBoards(force = false) {
   await cleanupExpiredTripsAndWishes().catch(() => null);
-  const state = await getSyncState();
-  const last = state?.lastSyncAt?.getTime() ?? 0;
-  if (!force && Date.now() - last < STALE_MS) {
-    return { skipped: true as const, reason: "fresh" as const };
+
+  if (!force) {
+    const state = await getSyncState();
+    const last = state?.lastSyncAt?.getTime() ?? 0;
+
+    // Если в конфиге есть группы, с которых ещё ни разу не сохранили посты — синхронизируем сразу
+    const configured = VK_BOARD_GROUPS.map((g) => g.screenName);
+    const seen = await prisma.vkBoardPost.findMany({
+      where: {
+        OR: [
+          { groupScreen: { in: configured } },
+          // иногда VK отдаёт screen без club-префикса и наоборот
+        ],
+      },
+      distinct: ["groupScreen"],
+      select: { groupScreen: true },
+      take: 100,
+    });
+    const seenSet = new Set(seen.map((s) => s.groupScreen));
+    const hasUnsyncedGroup = configured.some((name) => !seenSet.has(name));
+
+    if (!hasUnsyncedGroup && Date.now() - last < STALE_MS) {
+      return { skipped: true as const, reason: "fresh" as const };
+    }
   }
+
   return syncAllBoards();
 }
 

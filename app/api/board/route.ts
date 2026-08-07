@@ -7,7 +7,7 @@ import {
 
 const querySchema = z.object({
   kind: z.enum(["RIDES", "CARGO"]).default("RIDES"),
-  sync: z.enum(["0", "1"]).optional(),
+  sync: z.enum(["0", "1", "force"]).optional(),
   q: z.string().max(120).optional(),
 });
 
@@ -22,9 +22,9 @@ export async function GET(request: NextRequest) {
   }
 
   let syncMeta: unknown = null;
-  if (parsed.data.sync === "1") {
+  if (parsed.data.sync === "1" || parsed.data.sync === "force") {
     try {
-      syncMeta = await maybeSyncVkBoards(false);
+      syncMeta = await maybeSyncVkBoards(parsed.data.sync === "force");
     } catch (error) {
       syncMeta = {
         error: error instanceof Error ? error.message : "Ошибка синхронизации",
